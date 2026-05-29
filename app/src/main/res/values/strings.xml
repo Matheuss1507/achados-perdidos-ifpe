@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">AchadosPerdidosIFPE</string>
     <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_home">Home</string>
+    <string name="title_activity_chat_page">ChatPage</string>
+    <string name="title_activity_itens_page">ItensPage</string>
+    <string name="title_activity_profile_page">ProfilePage</string>
+    <string name="title_activity_items_page">ItemsPage</string>
 </resources>

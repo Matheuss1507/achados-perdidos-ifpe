@@ -1,7 +1,11 @@
 package br.edu.ifpe.achadosperdidosifpe
 
+import android.app.Activity
+import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
@@ -27,6 +31,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.platform.LocalContext
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.AchadosPerdidosIFPETheme
 
 val IfpeGreen = Color(0xFF00642F)
@@ -54,6 +59,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -177,7 +183,13 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                     )
 
                     Button(
-                        onClick = {  },
+                        onClick = {
+                            context.startActivity(
+                            Intent(context, MainActivity::class.java).setFlags(
+                                FLAG_ACTIVITY_SINGLE_TOP
+                            )
+                        )
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),

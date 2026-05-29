@@ -4,13 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import br.edu.ifpe.achadosperdidosifpe.ui.nav.BottomNavBar
+import br.edu.ifpe.achadosperdidosifpe.ui.nav.BottomNavItem
+import br.edu.ifpe.achadosperdidosifpe.ui.nav.MainNavHost
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.AchadosPerdidosIFPETheme
 
 class MainActivity : ComponentActivity() {
@@ -18,30 +20,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val navController = rememberNavController()
             AchadosPerdidosIFPETheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        val items = listOf(
+                            BottomNavItem.HomeButton,
+                            BottomNavItem.ItemsButton,
+                            BottomNavItem.ChatButton,
+                            BottomNavItem.ProfileButton
+                        )
+                        BottomNavBar(navController = navController, items = items)
+                    }
+                ) { innerPadding ->
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        MainNavHost(navController = navController)
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AchadosPerdidosIFPETheme {
-        Greeting("Android")
     }
 }
