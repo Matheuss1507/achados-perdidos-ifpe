@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -122,6 +123,7 @@ fun HomePage(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
+                onClick = { },
                 modifier = Modifier
                     .weight(1f)
                     .height(130.dp),
@@ -161,16 +163,16 @@ fun HomePage(modifier: Modifier = Modifier) {
                         text = "Registre aqui o que perdeu",
                         fontSize = 11.sp,
                         color = Color.Gray,
-                        lineHeight = 14.sp,
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
             Card(
+                onClick = { },
                 modifier = Modifier
                     .weight(1f)
-                    .height(120.dp),
+                    .height(130.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 border = BorderStroke(1.5.dp, Color(0xFF00913F))
@@ -207,11 +209,33 @@ fun HomePage(modifier: Modifier = Modifier) {
                         text = "Ajude alguém a encontrar",
                         fontSize = 11.sp,
                         color = Color.Gray,
-                        lineHeight = 14.sp,
                         textAlign = TextAlign.Center
                     )
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row (
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Últimos itens",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Color.Black
+            )
+
+            val IfpeGreen = Color(0xFF00642F)
+
+            Text(
+                text = "Ver todos",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = IfpeGreen
+            )
         }
     }
 }
