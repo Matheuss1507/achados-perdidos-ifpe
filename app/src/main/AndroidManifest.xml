@@ -12,31 +12,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AchadosPerdidosIFPE">
         <activity
-            android:name=".ui.ItemsPage"
-            android:exported="false"
-            android:label="@string/title_activity_items_page"
-            android:theme="@style/Theme.AchadosPerdidosIFPE" />
-        <activity
-            android:name=".ui.ProfilePage"
-            android:exported="false"
-            android:label="@string/title_activity_profile_page"
-            android:theme="@style/Theme.AchadosPerdidosIFPE" />
-        <activity
-            android:name=".ui.ItensPage"
-            android:exported="false"
-            android:label="@string/title_activity_itens_page"
-            android:theme="@style/Theme.AchadosPerdidosIFPE" />
-        <activity
-            android:name=".ui.ChatPage"
-            android:exported="false"
-            android:label="@string/title_activity_chat_page"
-            android:theme="@style/Theme.AchadosPerdidosIFPE" />
-        <activity
-            android:name="ui.HomePage"
-            android:exported="false"
-            android:label="@string/title_activity_home"
-            android:theme="@style/Theme.AchadosPerdidosIFPE" />
-        <activity
             android:name=".LoginActivity"
             android:exported="true"
             android:label="@string/title_activity_login"

@@ -6,4 +6,5 @@
     <string name="title_activity_itens_page">ItensPage</string>
     <string name="title_activity_profile_page">ProfilePage</string>
     <string name="title_activity_items_page">ItemsPage</string>
+    <string name="title_activity_item_details_page">ItemDetailsPage</string>
 </resources>

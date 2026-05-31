@@ -4,11 +4,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Search
@@ -18,22 +20,56 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.R
+import br.edu.ifpe.achadosperdidosifpe.model.Item
+import br.edu.ifpe.achadosperdidosifpe.model.Status
+import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(modifier: Modifier = Modifier) {
     var searchText by remember { mutableStateOf("") }
+    val scrollState = rememberScrollState()
+
+    val itens = remember {
+        listOf(
+            Item(
+                id = "1",
+                usuarioId = "user_01",
+                tipo = Tipo.ENCONTRADO,
+                status = Status.NO_SETOR,
+                nome = "Carteira preta",
+                categoria = "Acessórios",
+                localizacao = "Bloco B - Piso 2, sala 203",
+                fotoMockResId = R.drawable.carteira,
+                data = Date() 
+            ),
+            Item(
+                id = "2",
+                usuarioId = "user_02",
+                tipo = Tipo.PERDIDO,
+                status = Status.PERDIDO,
+                nome = "Fone de ouvido branco",
+                categoria = "Eletrônicos",
+                localizacao = "Bloco A",
+                fotoMockResId = null,
+                data = Date()
+            )
+        )
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF9F9F9))
+            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         Row(
@@ -41,7 +77,6 @@ fun HomePage(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Image(
@@ -51,21 +86,12 @@ fun HomePage(modifier: Modifier = Modifier) {
                     )
                 }
             }
-
-            BadgedBox(
-                badge = {
-                    Badge(containerColor = Color.Red) {
-                        Text("2", color = Color.White, fontSize = 10.sp)
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.NotificationsNone,
-                    contentDescription = "Notificações",
-                    modifier = Modifier.size(28.dp),
-                    tint = Color.Black
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.NotificationsNone,
+                contentDescription = "Notificações",
+                modifier = Modifier.size(28.dp),
+                tint = Color.Black
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -92,7 +118,7 @@ fun HomePage(modifier: Modifier = Modifier) {
                     unfocusedBorderColor = Color.LightGray,
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White
-            )
+                )
             )
 
             OutlinedButton(
@@ -215,11 +241,12 @@ fun HomePage(modifier: Modifier = Modifier) {
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Row (
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Últimos itens",
@@ -228,13 +255,127 @@ fun HomePage(modifier: Modifier = Modifier) {
                 color = Color.Black
             )
 
-            val IfpeGreen = Color(0xFF00642F)
-
+            val ifpeGreenText = Color(0xFF00642F)
             Text(
                 text = "Ver todos",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = IfpeGreen
+                color = ifpeGreenText
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        itens.forEach { item ->
+            ItemCard(item = item)
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+    }
+}
+
+@Composable
+fun ItemCard(item: Item) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(65.dp)
+                    .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (item.fotoMockResId != null) {
+                    Image(
+                        painter = painterResource(id = item.fotoMockResId),
+                        contentDescription = "Foto de ${item.nome}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Item sem foto",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val isPerdido = item.tipo == Tipo.PERDIDO
+                    val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
+                    val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
+                    val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
+
+                    Surface(
+                        color = tagBgColor,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = tagText,
+                            color = tagTextColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                }
+
+                Text(
+                    text = item.nome,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color.Black
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Ícone de localização",
+                        tint = Color.LightGray,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = item.localizacao,
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Ver detalhes",
+                tint = Color.LightGray,
+                modifier = Modifier.size(24.dp)
             )
         }
     }
