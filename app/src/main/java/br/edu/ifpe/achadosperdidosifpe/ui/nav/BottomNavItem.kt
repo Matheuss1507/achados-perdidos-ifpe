@@ -21,6 +21,13 @@ sealed interface Route {
 
     @Serializable
     data class ItemDetails(val itemId: String) : Route
+
+
+    @Serializable
+    data object ReportLostItem : Route
+
+    @Serializable
+    data object FindItem : Route
 }
 
 sealed class BottomNavItem(

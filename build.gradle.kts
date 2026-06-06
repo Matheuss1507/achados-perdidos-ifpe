@@ -4,4 +4,5 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     kotlin("plugin.serialization") version "2.2.10" apply false
 
+
 }

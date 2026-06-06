@@ -59,7 +59,9 @@ val itens = listOf(
 )
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {}) {
+fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
+             onReportLostItem: () -> Unit = {},
+             onFindItem: () -> Unit = {}) {
     var searchText by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
 
@@ -147,7 +149,7 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {}) 
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
-                onClick = { },
+                onClick = onReportLostItem,
                 modifier = Modifier
                     .weight(1f)
                     .height(130.dp),
@@ -193,7 +195,7 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {}) 
             }
 
             Card(
-                onClick = { },
+                onClick = onFindItem,
                 modifier = Modifier
                     .weight(1f)
                     .height(130.dp),
@@ -265,19 +267,18 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {}) 
         Spacer(modifier = Modifier.height(12.dp))
 
         itens.forEach { item ->
-            ItemCard(item = item, onClick = { onItemClick(item.id) })
+            ItemCard(item = item)
             Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
 
 @Composable
-fun ItemCard(item: Item, onClick: () -> Unit) {
+fun ItemCard(item: Item) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
-            .clickable { onClick() },
+            .height(90.dp),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color(0xFFF0F0F0))
