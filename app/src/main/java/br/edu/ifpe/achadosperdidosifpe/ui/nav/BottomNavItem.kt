@@ -18,6 +18,9 @@ sealed interface Route {
     data object Chat : Route
     @Serializable
     data object Profile : Route
+
+    @Serializable
+    data class ItemDetails(val itemId: String) : Route
 }
 
 sealed class BottomNavItem(

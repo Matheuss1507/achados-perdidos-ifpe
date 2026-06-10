@@ -3,6 +3,7 @@ package br.edu.ifpe.achadosperdidosifpe.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -32,38 +33,35 @@ import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import java.util.Date
 
+val itens = listOf(
+    Item(
+        id = "1",
+        usuarioId = "user_01",
+        tipo = Tipo.ENCONTRADO,
+        status = Status.NO_SETOR,
+        nome = "Carteira preta",
+        categoria = "Acessórios",
+        localizacao = "Bloco B - Piso 2, sala 203",
+        fotoMockResId = R.drawable.carteira,
+        data = Date()
+    ),
+    Item(
+        id = "2",
+        usuarioId = "user_02",
+        tipo = Tipo.PERDIDO,
+        status = Status.PERDIDO,
+        nome = "Fone de ouvido branco",
+        categoria = "Eletrônicos",
+        localizacao = "Bloco A",
+        fotoMockResId = null,
+        data = Date()
+    )
+)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomePage(modifier: Modifier = Modifier) {
+fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {}) {
     var searchText by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
-
-    val itens = remember {
-        listOf(
-            Item(
-                id = "1",
-                usuarioId = "user_01",
-                tipo = Tipo.ENCONTRADO,
-                status = Status.NO_SETOR,
-                nome = "Carteira preta",
-                categoria = "Acessórios",
-                localizacao = "Bloco B - Piso 2, sala 203",
-                fotoMockResId = R.drawable.carteira,
-                data = Date() 
-            ),
-            Item(
-                id = "2",
-                usuarioId = "user_02",
-                tipo = Tipo.PERDIDO,
-                status = Status.PERDIDO,
-                nome = "Fone de ouvido branco",
-                categoria = "Eletrônicos",
-                localizacao = "Bloco A",
-                fotoMockResId = null,
-                data = Date()
-            )
-        )
-    }
 
     Column(
         modifier = modifier
@@ -267,18 +265,19 @@ fun HomePage(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(12.dp))
 
         itens.forEach { item ->
-            ItemCard(item = item)
+            ItemCard(item = item, onClick = { onItemClick(item.id) })
             Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
 
 @Composable
-fun ItemCard(item: Item) {
+fun ItemCard(item: Item, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp),
+            .height(90.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color(0xFFF0F0F0))

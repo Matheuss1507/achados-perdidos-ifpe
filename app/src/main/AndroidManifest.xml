@@ -12,6 +12,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AchadosPerdidosIFPE">
         <activity
+            android:name=".ui.DetailsItemPage"
+            android:exported="false"
+            android:label="@string/title_activity_details_item_page"
+            android:theme="@style/Theme.AchadosPerdidosIFPE" />
+        <activity
             android:name=".LoginActivity"
             android:exported="true"
             android:label="@string/title_activity_login"
