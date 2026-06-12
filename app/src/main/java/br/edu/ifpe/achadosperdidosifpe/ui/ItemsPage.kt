@@ -1,37 +1,135 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.edu.ifpe.achadosperdidosifpe.model.Item
+import br.edu.ifpe.achadosperdidosifpe.model.Status
+import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import java.util.Date
 
+// Definida como private e com nome único para acabar com os conflitos do compilador
+private val CorVerdeFiltro = Color(0xFF00913F)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ItemsPage(modifier: Modifier = Modifier) {
+fun ItemsPage(
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit = {},
+    onItemClick: (String) -> Unit = {}
+) {
+    var searchText by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf(0) } // 0: Todos, 1: Perdidos, 2: Encontrados
+    val scrollState = rememberScrollState()
+
+    val listaItensFicticios = remember {
+        listOf(
+            Item(
+                id = "1",
+                usuarioId = "user_01",
+                tipo = Tipo.ENCONTRADO,
+                status = Status.NO_SETOR,
+                nome = "Carteira preta",
+                categoria = "Acessórios",
+                localizacao = "Bloco B - Piso 2, sala 203",
+                fotoMockResId = null,
+                data = Date()
+            ),
+            Item(
+                id = "2",
+                usuarioId = "user_02",
+                tipo = Tipo.PERDIDO,
+                status = Status.PERDIDO,
+                nome = "Fone de ouvido branco",
+                categoria = "Eletrônicos",
+                localizacao = "Bloco A - Próximo à lanchonete",
+                fotoMockResId = null,
+                data = Date()
+            ),
+            Item(
+                id = "3",
+                usuarioId = "user_03",
+                tipo = Tipo.ENCONTRADO,
+                status = Status.NO_SETOR,
+                nome = "Chaveiro com 3 chaves",
+                categoria = "Outros",
+                localizacao = "Pátio Central",
+                fotoMockResId = null,
+                data = Date()
+            ),
+            Item(
+                id = "4",
+                usuarioId = "user_04",
+                tipo = Tipo.PERDIDO,
+                status = Status.PERDIDO,
+                nome = "Garrafa térmica azul",
+                categoria = "Acessórios",
+                localizacao = "Quadra Poliesportiva",
+                fotoMockResId = null,
+                data = Date()
+            ),
+            Item(
+                id = "5",
+                usuarioId = "user_05",
+                tipo = Tipo.ENCONTRADO,
+                status = Status.RESOLVIDO,
+                nome = "Livro de Cálculo I",
+                categoria = "Material escolar",
+                localizacao = "Biblioteca Central",
+                fotoMockResId = null,
+                data = Date()
+            )
+        )
+    }
+
+    val itensFiltrados = listaItensFicticios.filter { item ->
+        val matchesSearch = item.nome.contains(searchText, ignoreCase = true) ||
+                item.categoria.contains(searchText, ignoreCase = true)
+        val matchesTab = when (selectedTab) {
+            1 -> item.tipo == Tipo.PERDIDO
+            2 -> item.tipo == Tipo.ENCONTRADO
+            else -> true
+        }
+        matchesSearch && matchesTab
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF9F9F9))
     ) {
+        // --- HEADER DA TELA ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(Color.White)
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* Ação de voltar opcional */ }) {
+            IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Voltar",
-                    tint = Color(0xFF00913F)
+                    tint = CorVerdeFiltro
                 )
             }
 
@@ -45,13 +143,201 @@ fun ItemsPage(modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            IconButton(onClick = { /* Ação de filtros */ }) {
+            IconButton(onClick = { /* Ação opcional de filtros avançados */ }) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = "Filtrar Itens",
-                    tint = Color(0xFF00913F)
+                    tint = CorVerdeFiltro
                 )
             }
+        }
+
+        HorizontalDivider(color = Color(0xFFEEEEEE))
+
+        // --- CAMPO DE BUSCA ---
+        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                placeholder = {
+                    Text("Buscar por nome ou categoria...", fontSize = 13.sp, color = Color.Gray)
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = CorVerdeFiltro,
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
+            )
+        }
+
+        // --- SISTEMA DE ABAS (TABS) ---
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = Color.White,
+            contentColor = CorVerdeFiltro,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                    color = CorVerdeFiltro
+                )
+            }
+        ) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("Todos", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
+                selectedContentColor = CorVerdeFiltro,
+                unselectedContentColor = Color.Gray
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text("Perdidos", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
+                selectedContentColor = CorVerdeFiltro,
+                unselectedContentColor = Color.Gray
+            )
+            Tab(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                text = { Text("Encontrados", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
+                selectedContentColor = CorVerdeFiltro,
+                unselectedContentColor = Color.Gray
+            )
+        }
+
+        // --- CORPO / LISTA DE ITENS ---
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (itensFiltrados.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Nenhum item corresponde à busca.",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                itensFiltrados.forEach { item ->
+                    ItemsPageCard(item = item, onClick = { onItemClick(item.id) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ItemsPageCard(item: Item, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(65.dp)
+                    .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Item sem foto",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val isPerdido = item.tipo == Tipo.PERDIDO
+                    val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
+                    val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
+                    val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
+
+                    Surface(
+                        color = tagBgColor,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = tagText,
+                            color = tagTextColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = item.nome,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color.Black
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Ícone de localização",
+                        tint = Color.LightGray,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = item.localizacao,
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Ver detalhes",
+                tint = Color.LightGray,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
