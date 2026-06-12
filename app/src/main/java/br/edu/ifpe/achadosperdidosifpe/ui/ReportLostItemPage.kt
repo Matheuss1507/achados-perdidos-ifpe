@@ -233,7 +233,8 @@ fun ReportLostItemPage(
                 Text(
                     text = "Registrar item perdido",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
         }
@@ -241,7 +242,7 @@ fun ReportLostItemPage(
 }
 
 @Composable
-private fun FormField(
+fun FormField(
     label: String,
     icon: ImageVector? = null,
     content: @Composable () -> Unit
@@ -271,7 +272,7 @@ private fun FormField(
 }
 
 @Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+fun fieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = IfpeGreen,
     unfocusedBorderColor = Color(0xFFDDDDDD),
     focusedLabelColor = IfpeGreen,

@@ -1,11 +1,9 @@
 package br.edu.ifpe.achadosperdidosifpe
 
-import android.app.Activity
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
@@ -46,7 +44,12 @@ class LoginActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     containerColor = Color.White
                 ) { innerPadding ->
-                    LoginScreen(modifier = Modifier.padding(innerPadding))
+                    LoginScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigateToRegister = {
+                            startActivity(Intent(this, RegisterActivity::class.java))
+                        }
+                    )
                 }
             }
         }
@@ -55,7 +58,8 @@ class LoginActivity : ComponentActivity() {
 
 @Preview(showBackground = true)
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier) {
+fun LoginScreen(modifier: Modifier = Modifier,
+                onNavigateToRegister: () -> Unit = {}) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -247,12 +251,15 @@ fun LoginScreen(modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = "Ainda não tem uma conta? ", color = Color.Black, fontSize = 14.sp)
+
             Text(
                 text = "Cadastre-se",
                 color = IfpeGreen,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                modifier = Modifier.clickable {  }
+                modifier = Modifier.clickable {
+                    context.startActivity(Intent(context, RegisterActivity::class.java))
+                }
             )
         }
     }

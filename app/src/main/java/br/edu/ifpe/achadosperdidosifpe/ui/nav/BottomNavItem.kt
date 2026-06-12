@@ -28,6 +28,11 @@ sealed interface Route {
 
     @Serializable
     data object FindItem : Route
+    @Serializable
+    data object Register : Route
+
+    @Serializable
+    data object Login : Route
 }
 
 sealed class BottomNavItem(

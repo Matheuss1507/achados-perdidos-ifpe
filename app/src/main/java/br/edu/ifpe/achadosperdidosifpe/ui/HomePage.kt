@@ -267,18 +267,19 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
         Spacer(modifier = Modifier.height(12.dp))
 
         itens.forEach { item ->
-            ItemCard(item = item)
+            ItemCard(item = item, onClick = { onItemClick(item.id) })
             Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
 
 @Composable
-fun ItemCard(item: Item) {
+fun ItemCard(item: Item, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp),
+            .height(90.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color(0xFFF0F0F0))

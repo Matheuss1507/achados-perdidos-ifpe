@@ -320,48 +320,14 @@ fun FindItemPage(
                 Text(
                     text = "Registrar item perdido",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+
                 )
             }
         }
 }}
 
 
-@Composable
-private fun FormField(
-    label: String,
-    icon: ImageVector? = null,
-    content: @Composable () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = IfpeGreenMid,
-                    modifier = Modifier.size(15.dp)
-                )
-            }
-            Text(
-                text = label,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.DarkGray
-            )
-        }
-        content()
-    }
-}
 
-@Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = IfpeGreen,
-    unfocusedBorderColor = Color(0xFFDDDDDD),
-    focusedLabelColor = IfpeGreen,
-    unfocusedContainerColor = Color.White,
-    focusedContainerColor = Color.White
-)
+
