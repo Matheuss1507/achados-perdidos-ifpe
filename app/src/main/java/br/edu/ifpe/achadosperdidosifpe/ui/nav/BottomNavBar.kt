@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
@@ -35,10 +36,8 @@ fun BottomNavBar(navController: NavHostController, items: List<BottomNavItem>) {
                 ),
                 onClick = {
                     navController.navigate(item.route) {
-                        navController.graph.startDestinationRoute?.let { startRoute ->
-                            popUpTo(startRoute) {
-                                saveState = true
-                            }
+                        popUpTo<Route.Home> {
+                            saveState = true
                         }
                         launchSingleTop = true
                         restoreState = true

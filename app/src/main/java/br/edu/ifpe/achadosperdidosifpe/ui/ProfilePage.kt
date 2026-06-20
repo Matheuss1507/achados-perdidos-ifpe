@@ -25,9 +25,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-@Preview(showBackground = true)
+
 @Composable
-fun ProfilePage(modifier: Modifier = Modifier) {
+fun ProfilePage(
+    modifier: Modifier = Modifier,
+    onLogoutClick: () -> Unit = {}
+) {
     val ifpeGreen = Color(0xFF00642F)
     val scrollState = rememberScrollState()
 
@@ -37,19 +40,17 @@ fun ProfilePage(modifier: Modifier = Modifier) {
             .background(Color(0xFFF9F9F9))
             .verticalScroll(scrollState)
     ) {
-        // --- HEADER VERDE ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(ifpeGreen)
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
-            // Botão Voltar e Título da Página
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* Ação de voltar opcional */ }) {
+                IconButton(onClick = { }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Voltar",
@@ -64,10 +65,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Informações do Usuário (Foto e Nome)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -89,9 +87,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                         )
                     }
                 }
-
                 Spacer(modifier = Modifier.width(16.dp))
-
                 Column {
                     Text(
                         text = "Matheus Soares",
@@ -108,20 +104,16 @@ fun ProfilePage(modifier: Modifier = Modifier) {
             }
         }
 
-        // --- CORPO DA TELA (CONTEÚDO EM CARDS) ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-
-            // 1. LINHA DE ESTATÍSTICAS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Card Itens Perdidos
                 Card(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
@@ -151,8 +143,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                         )
                     }
                 }
-
-                // Card Itens Encontrados
                 Card(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
@@ -182,8 +172,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                         )
                     }
                 }
-
-                // Card Devoluções
                 Card(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
@@ -205,7 +193,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Devoluções",
+                            text = "Devoluções\n",
                             fontSize = 12.sp,
                             color = Color.Gray,
                             textAlign = TextAlign.Center,
@@ -215,7 +203,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 2. SEÇÃO: INFORMAÇÕES PESSOAIS
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Informações Pessoais",
@@ -224,7 +211,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                     color = Color.Black,
                     modifier = Modifier.padding(start = 4.dp)
                 )
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -232,7 +218,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                     border = BorderStroke(1.dp, Color(0xFFEFEFEF))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        // Campo: E-mail
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -254,10 +239,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                                 )
                             }
                         }
-
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF5F5F5))
-
-                        // Campo: Matrícula
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -279,10 +261,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                                 )
                             }
                         }
-
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF5F5F5))
-
-                        // Campo: Curso
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -308,7 +287,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                 }
             }
 
-            // 3. SEÇÃO: CONFIGURAÇÕES
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Configurações",
@@ -317,7 +295,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                     color = Color.Black,
                     modifier = Modifier.padding(start = 4.dp)
                 )
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -354,6 +331,23 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onLogoutClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+            ) {
+                Text(
+                    text = "Sair da Conta",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

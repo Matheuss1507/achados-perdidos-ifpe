@@ -60,7 +60,7 @@ val itens = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
-             onReportLostItem: () -> Unit = {},
+             onLostItem: () -> Unit = {},
              onFindItem: () -> Unit = {}) {
     var searchText by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
@@ -149,7 +149,7 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
-                onClick = onReportLostItem,
+                onClick = onLostItem,
                 modifier = Modifier
                     .weight(1f)
                     .height(130.dp),

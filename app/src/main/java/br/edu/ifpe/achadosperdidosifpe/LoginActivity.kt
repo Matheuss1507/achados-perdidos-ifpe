@@ -47,7 +47,12 @@ class LoginActivity : ComponentActivity() {
                     LoginScreen(
                         modifier = Modifier.padding(innerPadding),
                         onNavigateToRegister = {
-                            startActivity(Intent(this, RegisterActivity::class.java))
+                            val intent = Intent(this, MainActivity::class.java).apply {
+                                putExtra("OPEN_SCREEN", "register")
+                                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            }
+                            startActivity(intent)
+                            finish()
                         }
                     )
                 }
@@ -258,9 +263,10 @@ fun LoginScreen(modifier: Modifier = Modifier,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 modifier = Modifier.clickable {
-                    context.startActivity(Intent(context, RegisterActivity::class.java))
+                    onNavigateToRegister()
                 }
             )
+
         }
     }
 }

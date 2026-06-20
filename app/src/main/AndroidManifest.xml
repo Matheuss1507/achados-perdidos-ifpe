@@ -28,7 +28,6 @@
             android:exported="false"
             android:label="@string/app_name"
             android:theme="@style/Theme.AchadosPerdidosIFPE" />
-        <activity android:name=".RegisterActivity" />
     </application>
 
 </manifest>

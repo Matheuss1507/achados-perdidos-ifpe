@@ -27,8 +27,7 @@ import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import java.util.Date
 
-// Definida como private e com nome único para acabar com os conflitos do compilador
-private val CorVerdeFiltro = Color(0xFF00913F)
+private val GreenFilter = Color(0xFF00913F)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +37,7 @@ fun ItemsPage(
     onItemClick: (String) -> Unit = {}
 ) {
     var searchText by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf(0) } // 0: Todos, 1: Perdidos, 2: Encontrados
+    var selectedTab by remember { mutableIntStateOf(0) }
     val scrollState = rememberScrollState()
 
     val listaItensFicticios = remember {
@@ -117,7 +116,6 @@ fun ItemsPage(
             .fillMaxSize()
             .background(Color(0xFFF9F9F9))
     ) {
-        // --- HEADER DA TELA ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -129,7 +127,7 @@ fun ItemsPage(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Voltar",
-                    tint = CorVerdeFiltro
+                    tint = GreenFilter
                 )
             }
 
@@ -143,18 +141,17 @@ fun ItemsPage(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            IconButton(onClick = { /* Ação opcional de filtros avançados */ }) {
+            IconButton(onClick = {  }) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = "Filtrar Itens",
-                    tint = CorVerdeFiltro
+                    tint = GreenFilter
                 )
             }
         }
 
         HorizontalDivider(color = Color(0xFFEEEEEE))
 
-        // --- CAMPO DE BUSCA ---
         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             OutlinedTextField(
                 value = searchText,
@@ -169,7 +166,7 @@ fun ItemsPage(
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = CorVerdeFiltro,
+                    focusedBorderColor = GreenFilter,
                     unfocusedBorderColor = Color.LightGray,
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White
@@ -177,15 +174,14 @@ fun ItemsPage(
             )
         }
 
-        // --- SISTEMA DE ABAS (TABS) ---
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.White,
-            contentColor = CorVerdeFiltro,
+            contentColor = GreenFilter,
             indicator = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
                     Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    color = CorVerdeFiltro
+                    color = GreenFilter
                 )
             }
         ) {
@@ -193,26 +189,25 @@ fun ItemsPage(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
                 text = { Text("Todos", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
-                selectedContentColor = CorVerdeFiltro,
+                selectedContentColor = GreenFilter,
                 unselectedContentColor = Color.Gray
             )
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
                 text = { Text("Perdidos", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
-                selectedContentColor = CorVerdeFiltro,
+                selectedContentColor = GreenFilter,
                 unselectedContentColor = Color.Gray
             )
             Tab(
                 selected = selectedTab == 2,
                 onClick = { selectedTab = 2 },
                 text = { Text("Encontrados", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
-                selectedContentColor = CorVerdeFiltro,
+                selectedContentColor = GreenFilter,
                 unselectedContentColor = Color.Gray
             )
         }
 
-        // --- CORPO / LISTA DE ITENS ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()

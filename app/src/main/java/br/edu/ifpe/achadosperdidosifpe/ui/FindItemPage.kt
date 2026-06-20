@@ -56,7 +56,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun FindItemPage(
     modifier: Modifier = Modifier,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToItems: () -> Unit = {}
 ) {
     var nome by remember { mutableStateOf("") }
     var categoriaExpanded by remember { mutableStateOf(false) }
@@ -304,7 +305,7 @@ fun FindItemPage(
             }
 
             Button(
-                onClick = { /* TODO: salvar item e navegar de volta */ },
+                onClick = { onNavigateToItems () },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),

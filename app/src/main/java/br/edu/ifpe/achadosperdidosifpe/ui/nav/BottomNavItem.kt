@@ -24,7 +24,7 @@ sealed interface Route {
 
 
     @Serializable
-    data object ReportLostItem : Route
+    data object LostItem : Route
 
     @Serializable
     data object FindItem : Route

@@ -19,14 +19,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 val IfpeGreen = Color(0xFF00642F)
-val IfpeGreenLight = Color(0xFFE8F5E9)
 val IfpeGreenMid = Color(0xFF00913F)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportLostItemPage(
+fun LostItemPage(
     modifier: Modifier = Modifier,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToItems: () -> Unit = {}
 ) {
     var nome by remember { mutableStateOf("") }
     var categoriaExpanded by remember { mutableStateOf(false) }
@@ -217,7 +217,7 @@ fun ReportLostItemPage(
             }
 
             Button(
-                onClick = { /* TODO: salvar item e navegar de volta */ },
+                onClick = { onNavigateToItems() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
