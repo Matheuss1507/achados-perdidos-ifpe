@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AchadosPerdidosIFPE</string>
+    <string name="app_name">Achados &amp; Perdidos IFPE</string>
     <string name="title_activity_login">LoginActivity</string>
     <string name="title_activity_home">Home</string>
     <string name="title_activity_chat_page">ChatPage</string>

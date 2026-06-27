@@ -120,17 +120,9 @@ fun ItemsPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(horizontal = 8.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Voltar",
-                    tint = GreenFilter
-                )
-            }
-
             Text(
                 text = "Todos os Itens",
                 fontSize = 20.sp,

@@ -50,13 +50,6 @@ fun ProfilePage(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = Color.White
-                    )
-                }
                 Text(
                     text = "Meu Perfil",
                     fontSize = 20.sp,

@@ -101,18 +101,14 @@ fun ChatPage(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (chatAtual != null) {
-                            idChatSelecionado = null
-                        } else {
-                            onBackClick()
+                    if (chatAtual != null) {
+                        IconButton(onClick = { idChatSelecionado = null }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Voltar",
+                                tint = Color.White
+                            )
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar",
-                            tint = Color.White
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = IfpeGreen),

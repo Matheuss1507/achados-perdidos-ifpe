@@ -49,17 +49,11 @@ fun MainNavHost(
         composable<Route.Items> {
             ItemsPage(
                 modifier = modifier,
-                onBackClick = { navController.popBackStack() },
                 onItemClick = { itemId -> navController.navigate(Route.ItemDetails(itemId)) }
             )
         }
 
-        composable<Route.Chat> {
-            ChatPage(
-                modifier = modifier,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
+        composable<Route.Chat> { ChatPage(modifier = modifier) }
 
         composable<Route.Profile> {
             val context = LocalContext.current
