@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
-import java.util.Date
 
 private val GreenFilter = Color(0xFF00913F)
 
@@ -40,65 +39,7 @@ fun ItemsPage(
     var selectedTab by remember { mutableIntStateOf(0) }
     val scrollState = rememberScrollState()
 
-    val listaItensFicticios = remember {
-        listOf(
-            Item(
-                id = "1",
-                usuarioId = "user_01",
-                tipo = Tipo.ENCONTRADO,
-                status = Status.NO_SETOR,
-                nome = "Carteira preta",
-                categoria = "Acessórios",
-                localizacao = "Bloco B - Piso 2, sala 203",
-                fotoMockResId = null,
-                data = Date()
-            ),
-            Item(
-                id = "2",
-                usuarioId = "user_02",
-                tipo = Tipo.PERDIDO,
-                status = Status.PERDIDO,
-                nome = "Fone de ouvido branco",
-                categoria = "Eletrônicos",
-                localizacao = "Bloco A - Próximo à lanchonete",
-                fotoMockResId = null,
-                data = Date()
-            ),
-            Item(
-                id = "3",
-                usuarioId = "user_03",
-                tipo = Tipo.ENCONTRADO,
-                status = Status.NO_SETOR,
-                nome = "Chaveiro com 3 chaves",
-                categoria = "Outros",
-                localizacao = "Pátio Central",
-                fotoMockResId = null,
-                data = Date()
-            ),
-            Item(
-                id = "4",
-                usuarioId = "user_04",
-                tipo = Tipo.PERDIDO,
-                status = Status.PERDIDO,
-                nome = "Garrafa térmica azul",
-                categoria = "Acessórios",
-                localizacao = "Quadra Poliesportiva",
-                fotoMockResId = null,
-                data = Date()
-            ),
-            Item(
-                id = "5",
-                usuarioId = "user_05",
-                tipo = Tipo.ENCONTRADO,
-                status = Status.RESOLVIDO,
-                nome = "Livro de Cálculo I",
-                categoria = "Material escolar",
-                localizacao = "Biblioteca Central",
-                fotoMockResId = null,
-                data = Date()
-            )
-        )
-    }
+    val listaItensFicticios = remember { itens }
 
     val itensFiltrados = listaItensFicticios.filter { item ->
         val matchesSearch = item.nome.contains(searchText, ignoreCase = true) ||
@@ -130,9 +71,7 @@ fun ItemsPage(
                 color = Color.Black,
                 modifier = Modifier.padding(start = 4.dp)
             )
-
             Spacer(modifier = Modifier.weight(1f))
-
             IconButton(onClick = {  }) {
                 Icon(
                     imageVector = Icons.Default.Tune,
@@ -141,9 +80,7 @@ fun ItemsPage(
                 )
             }
         }
-
         HorizontalDivider(color = Color(0xFFEEEEEE))
-
         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             OutlinedTextField(
                 value = searchText,
@@ -165,7 +102,6 @@ fun ItemsPage(
                 )
             )
         }
-
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.White,
@@ -199,7 +135,6 @@ fun ItemsPage(
                 unselectedContentColor = Color.Gray
             )
         }
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -216,7 +151,7 @@ fun ItemsPage(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Nenhum item corresponde à busca.",
+                        text = "Nenhum item corresponde   busca.",
                         color = Color.Gray,
                         fontSize = 14.sp
                     )
@@ -260,9 +195,7 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     modifier = Modifier.size(24.dp)
                 )
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -278,7 +211,6 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
                     val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
-
                     Surface(
                         color = tagBgColor,
                         shape = RoundedCornerShape(4.dp)
@@ -292,18 +224,16 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                         )
                     }
                 }
-
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = Color.Black
                 )
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ícone de localização",
+                        contentDescription = " cone de localiza",
                         tint = Color.LightGray,
                         modifier = Modifier.size(14.dp)
                     )
@@ -316,9 +246,7 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(8.dp))
-
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",

@@ -40,7 +40,7 @@ val itens = listOf(
         tipo = Tipo.ENCONTRADO,
         status = Status.NO_SETOR,
         nome = "Carteira preta",
-        categoria = "Acessórios",
+        categoria = "Acess rios",
         localizacao = "Bloco B - Piso 2, sala 203",
         fotoMockResId = R.drawable.carteira,
         data = Date()
@@ -51,20 +51,57 @@ val itens = listOf(
         tipo = Tipo.PERDIDO,
         status = Status.PERDIDO,
         nome = "Fone de ouvido branco",
-        categoria = "Eletrônicos",
-        localizacao = "Bloco A",
+        categoria = "Eletr nicos",
+        localizacao = "Bloco A - Pr ximo   lanchonete",
+        fotoMockResId = null,
+        data = Date()
+    ),
+    Item(
+        id = "3",
+        usuarioId = "user_03",
+        tipo = Tipo.ENCONTRADO,
+        status = Status.NO_SETOR,
+        nome = "Chaveiro com 3 chaves",
+        categoria = "Outros",
+        localizacao = "P tio Central",
+        fotoMockResId = null,
+        data = Date()
+    ),
+    Item(
+        id = "4",
+        usuarioId = "user_04",
+        tipo = Tipo.PERDIDO,
+        status = Status.PERDIDO,
+        nome = "Garrafa t rmica azul",
+        categoria = "Acess rios",
+        localizacao = "Quadra Poliesportiva",
+        fotoMockResId = null,
+        data = Date()
+    ),
+    Item(
+        id = "5",
+        usuarioId = "user_05",
+        tipo = Tipo.ENCONTRADO,
+        status = Status.RESOLVIDO,
+        nome = "Livro de C lculo I",
+        categoria = "Material escolar",
+        localizacao = "Biblioteca Central",
         fotoMockResId = null,
         data = Date()
     )
 )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
-             onLostItem: () -> Unit = {},
-             onFindItem: () -> Unit = {}) {
+fun HomePage(
+    modifier: Modifier = Modifier,
+    onItemClick: (String) -> Unit = {},
+    onLostItem: () -> Unit = {},
+    onFindItem: () -> Unit = {},
+    onSeeAllClick: () -> Unit = {}
+) {
     var searchText by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -88,14 +125,12 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
             }
             Icon(
                 imageVector = Icons.Default.NotificationsNone,
-                contentDescription = "Notificações",
+                contentDescription = "Notifica es",
                 modifier = Modifier.size(28.dp),
                 tint = Color.Black
             )
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -120,7 +155,6 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
                     unfocusedContainerColor = Color.White
                 )
             )
-
             OutlinedButton(
                 onClick = { },
                 shape = RoundedCornerShape(12.dp),
@@ -141,9 +175,7 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -193,7 +225,6 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
                     )
                 }
             }
-
             Card(
                 onClick = onFindItem,
                 modifier = Modifier
@@ -232,7 +263,7 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Ajude alguém a encontrar",
+                        text = "Ajude algu m a encontrar",
                         fontSize = 11.sp,
                         color = Color.Gray,
                         textAlign = TextAlign.Center
@@ -240,33 +271,29 @@ fun HomePage(modifier: Modifier = Modifier, onItemClick: (String) -> Unit = {},
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Últimos itens",
+                text = " ltimos itens",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = Color.Black
             )
-
             val ifpeGreenText = Color(0xFF00642F)
             Text(
                 text = "Ver todos",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = ifpeGreenText
+                color = ifpeGreenText,
+                modifier = Modifier.clickable { onSeeAllClick() }
             )
         }
-
         Spacer(modifier = Modifier.height(12.dp))
-
-        itens.forEach { item ->
+        itens.take(2).forEach { item ->
             ItemCard(item = item, onClick = { onItemClick(item.id) })
             Spacer(modifier = Modifier.height(10.dp))
         }
@@ -312,9 +339,7 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -330,7 +355,6 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
                     val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
-
                     Surface(
                         color = tagBgColor,
                         shape = RoundedCornerShape(4.dp)
@@ -343,20 +367,17 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
-
                 }
-
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = Color.Black
                 )
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ícone de localização",
+                        contentDescription = " cone de localiza",
                         tint = Color.LightGray,
                         modifier = Modifier.size(14.dp)
                     )
@@ -369,9 +390,7 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(8.dp))
-
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",
