@@ -31,8 +31,11 @@ import br.edu.ifpe.achadosperdidosifpe.R
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import java.util.Date
 
+// Mantido como fallback local caso queira renderizar itens mockados
 val itens = listOf(
     Item(
         id = "1",
@@ -40,53 +43,9 @@ val itens = listOf(
         tipo = Tipo.ENCONTRADO,
         status = Status.NO_SETOR,
         nome = "Carteira preta",
-        categoria = "Acess rios",
+        categoria = "Acessórios",
         localizacao = "Bloco B - Piso 2, sala 203",
-        fotoMockResId = R.drawable.carteira,
-        data = Date()
-    ),
-    Item(
-        id = "2",
-        usuarioId = "user_02",
-        tipo = Tipo.PERDIDO,
-        status = Status.PERDIDO,
-        nome = "Fone de ouvido branco",
-        categoria = "Eletr nicos",
-        localizacao = "Bloco A - Pr ximo   lanchonete",
-        fotoMockResId = null,
-        data = Date()
-    ),
-    Item(
-        id = "3",
-        usuarioId = "user_03",
-        tipo = Tipo.ENCONTRADO,
-        status = Status.NO_SETOR,
-        nome = "Chaveiro com 3 chaves",
-        categoria = "Outros",
-        localizacao = "P tio Central",
-        fotoMockResId = null,
-        data = Date()
-    ),
-    Item(
-        id = "4",
-        usuarioId = "user_04",
-        tipo = Tipo.PERDIDO,
-        status = Status.PERDIDO,
-        nome = "Garrafa t rmica azul",
-        categoria = "Acess rios",
-        localizacao = "Quadra Poliesportiva",
-        fotoMockResId = null,
-        data = Date()
-    ),
-    Item(
-        id = "5",
-        usuarioId = "user_05",
-        tipo = Tipo.ENCONTRADO,
-        status = Status.RESOLVIDO,
-        nome = "Livro de C lculo I",
-        categoria = "Material escolar",
-        localizacao = "Biblioteca Central",
-        fotoMockResId = null,
+        fotoUrl = null,
         data = Date()
     )
 )
@@ -102,6 +61,43 @@ fun HomePage(
 ) {
     var searchText by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
+
+    // Lista reativa que observa o Firestore
+    var itensFirestore by remember { mutableStateOf<List<Item>>(emptyList()) }
+
+    DisposableEffect(Unit) {
+        val db = FirebaseFirestore.getInstance()
+        val listener = db.collection("itens")
+            .orderBy("data", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    // Fallback reativo simples caso a ordenação por índice ainda esteja sendo gerada no console
+                    db.collection("itens").addSnapshotListener { fallbackSnapshot, _ ->
+                        if (fallbackSnapshot != null) {
+                            itensFirestore = fallbackSnapshot.documents.mapNotNull { doc ->
+                                doc.toObject(Item::class.java)
+                            }
+                        }
+                    }
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    itensFirestore = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(Item::class.java)
+                    }
+                }
+            }
+        onDispose {
+            listener.remove()
+        }
+    }
+
+    // Filtro local baseado na busca digitada
+    val itensFiltrados = itensFirestore.filter { item ->
+        item.nome.contains(searchText, ignoreCase = true) ||
+                item.categoria.contains(searchText, ignoreCase = true)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -125,12 +121,14 @@ fun HomePage(
             }
             Icon(
                 imageVector = Icons.Default.NotificationsNone,
-                contentDescription = "Notifica es",
+                contentDescription = "Notificações",
                 modifier = Modifier.size(28.dp),
                 tint = Color.Black
             )
         }
+
         Spacer(modifier = Modifier.height(24.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -155,6 +153,7 @@ fun HomePage(
                     unfocusedContainerColor = Color.White
                 )
             )
+
             OutlinedButton(
                 onClick = { },
                 shape = RoundedCornerShape(12.dp),
@@ -175,7 +174,9 @@ fun HomePage(
                 }
             }
         }
+
         Spacer(modifier = Modifier.height(24.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -225,6 +226,7 @@ fun HomePage(
                     )
                 }
             }
+
             Card(
                 onClick = onFindItem,
                 modifier = Modifier
@@ -263,7 +265,7 @@ fun HomePage(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Ajude algu m a encontrar",
+                        text = "Ajude alguém a encontrar",
                         fontSize = 11.sp,
                         color = Color.Gray,
                         textAlign = TextAlign.Center
@@ -271,14 +273,16 @@ fun HomePage(
                 }
             }
         }
+
         Spacer(modifier = Modifier.height(24.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = " ltimos itens",
+                text = "Últimos itens",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = Color.Black
@@ -292,10 +296,21 @@ fun HomePage(
                 modifier = Modifier.clickable { onSeeAllClick() }
             )
         }
+
         Spacer(modifier = Modifier.height(12.dp))
-        itens.take(2).forEach { item ->
-            ItemCard(item = item, onClick = { onItemClick(item.id) })
-            Spacer(modifier = Modifier.height(10.dp))
+
+        if (itensFiltrados.isEmpty()) {
+            Text(
+                text = "Nenhum item recente encontrado.",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            itensFiltrados.take(2).forEach { item ->
+                ItemCard(item = item, onClick = { onItemClick(item.id) })
+                Spacer(modifier = Modifier.height(10.dp))
+            }
         }
     }
 }
@@ -323,23 +338,16 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (item.fotoMockResId != null) {
-                    Image(
-                        painter = painterResource(id = item.fotoMockResId),
-                        contentDescription = "Foto de ${item.nome}",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Item sem foto",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Item sem foto",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
             }
+
             Spacer(modifier = Modifier.width(12.dp))
+
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -355,6 +363,7 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
                     val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
+
                     Surface(
                         color = tagBgColor,
                         shape = RoundedCornerShape(4.dp)
@@ -368,16 +377,18 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                         )
                     }
                 }
+
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = Color.Black
                 )
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = " cone de localiza",
+                        contentDescription = "Ícone de localização",
                         tint = Color.LightGray,
                         modifier = Modifier.size(14.dp)
                     )
@@ -390,7 +401,9 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",

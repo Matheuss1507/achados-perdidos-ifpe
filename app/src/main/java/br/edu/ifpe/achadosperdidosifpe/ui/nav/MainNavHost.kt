@@ -3,6 +3,10 @@ package br.edu.ifpe.achadosperdidosifpe.ui.nav
 import android.app.Activity import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -11,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import br.edu.ifpe.achadosperdidosifpe.LoginActivity
 import br.edu.ifpe.achadosperdidosifpe.LoginScreen
+import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.ui.HomePage
 import br.edu.ifpe.achadosperdidosifpe.ui.ChatPage
 import br.edu.ifpe.achadosperdidosifpe.ui.FindItemPage
@@ -88,15 +93,34 @@ fun MainNavHost(
                 }
             )
         }
+
         composable<Route.ItemDetails> { backStackEntry ->
             val routeArgs = backStackEntry.toRoute<Route.ItemDetails>()
-            val itemEncontrado = itens.find { it.id == routeArgs.itemId }
+            var itemEncontrado by remember { mutableStateOf<Item?>(null) }
+
+            LaunchedEffect(routeArgs.itemId) {
+                val localItem = itens.find { it.id == routeArgs.itemId }
+                if (localItem != null) {
+                    itemEncontrado = localItem
+                } else {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("itens")
+                        .document(routeArgs.itemId)
+                        .addSnapshotListener { snapshot, _ ->
+                            if (snapshot != null && snapshot.exists()) {
+                                itemEncontrado = snapshot.toObject(Item::class.java)
+                            }
+                        }
+                }
+            }
+
             ItemDetailsPage(
                 item = itemEncontrado,
                 onBackClick = { navController.popBackStack() },
                 onChatClick = { navController.navigate(Route.Chat) }
             )
         }
+
         composable<Route.Register> {
             val context = LocalContext.current
             RegisterPage(
