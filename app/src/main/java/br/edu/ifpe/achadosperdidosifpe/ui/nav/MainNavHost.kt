@@ -24,6 +24,7 @@ import br.edu.ifpe.achadosperdidosifpe.ui.ProfilePage
 import br.edu.ifpe.achadosperdidosifpe.ui.ItemDetailsPage
 import br.edu.ifpe.achadosperdidosifpe.ui.RegisterPage
 import br.edu.ifpe.achadosperdidosifpe.ui.LostItemPage
+import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
 @Composable
@@ -61,9 +62,9 @@ fun MainNavHost(
             val context = LocalContext.current
             ProfilePage(
                 modifier = modifier,
+                viewModel = viewModel,
                 onLogoutClick = {
-                    com.google.firebase.Firebase.auth.signOut()
-
+                    Firebase.auth.signOut()
                     val intent = Intent(context, LoginActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     }

@@ -26,13 +26,24 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
+import br.edu.ifpe.achadosperdidosifpe.model.Status
+import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+
 @Composable
 fun ProfilePage(
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel,
     onLogoutClick: () -> Unit = {}
 ) {
     val ifpeGreen = Color(0xFF00642F)
     val scrollState = rememberScrollState()
+    val user = viewModel.user
+
+    val meusItens = viewModel.items.filter { it.usuarioId == user?.id }
+    val qtdPerdidos = meusItens.count { it.tipo == Tipo.PERDIDO }
+    val qtdEncontrados = meusItens.count { it.tipo == Tipo.ENCONTRADO }
+    val qtdDevolucoes = meusItens.count { it.status == Status.RESOLVIDO }
 
     Column(
         modifier = modifier
@@ -83,13 +94,13 @@ fun ProfilePage(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "Matheus Soares",
+                        text = user?.nome ?: "Carregando...",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = "Análise e Des. de Sistemas",
+                        text = user?.curso ?: "",
                         fontSize = 14.sp,
                         color = Color.White.copy(alpha = 0.9f)
                     )
@@ -121,7 +132,7 @@ fun ProfilePage(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "2",
+                            text = "$qtdPerdidos",
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFD32F2F)
@@ -150,7 +161,7 @@ fun ProfilePage(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "1",
+                            text = "$qtdEncontrados",
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF388E3C)
@@ -179,7 +190,7 @@ fun ProfilePage(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "3",
+                            text = "$qtdDevolucoes",
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1976D2)
@@ -225,9 +236,8 @@ fun ProfilePage(
                             Column {
                                 Text(text = "E-mail", fontSize = 12.sp, color = Color.Gray)
                                 Text(
-                                    text = "matheus.soares@discente.ifpe.edu.br",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    text = user?.email ?: "-",
+                                    fontSize = 14.sp, fontWeight = FontWeight.Medium,
                                     color = Color.Black
                                 )
                             }
@@ -247,7 +257,7 @@ fun ProfilePage(
                             Column {
                                 Text(text = "Matrícula", fontSize = 12.sp, color = Color.Gray)
                                 Text(
-                                    text = "20230145",
+                                    text = user?.matricula ?: "Não informada",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black
@@ -269,11 +279,12 @@ fun ProfilePage(
                             Column {
                                 Text(text = "Curso", fontSize = 12.sp, color = Color.Gray)
                                 Text(
-                                    text = "Análise e Desenvolvimento de Sistemas",
+                                    text = user?.curso ?: "-",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black
                                 )
+
                             }
                         }
                     }
