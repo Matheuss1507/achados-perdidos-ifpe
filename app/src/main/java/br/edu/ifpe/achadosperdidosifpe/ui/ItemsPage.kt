@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.model.Item
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 
@@ -32,6 +33,7 @@ private val GreenFilter = Color(0xFF00913F)
 @Composable
 fun ItemsPage(
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel,
     onBackClick: () -> Unit = {},
     onItemClick: (String) -> Unit = {}
 ) {
@@ -39,9 +41,7 @@ fun ItemsPage(
     var selectedTab by remember { mutableIntStateOf(0) }
     val scrollState = rememberScrollState()
 
-    val listaItensFicticios = remember { itens }
-
-    val itensFiltrados = listaItensFicticios.filter { item ->
+    val itensFiltrados = viewModel.items.filter { item ->
         val matchesSearch = item.nome.contains(searchText, ignoreCase = true) ||
                 item.categoria.contains(searchText, ignoreCase = true)
         val matchesTab = when (selectedTab) {

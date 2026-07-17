@@ -1,12 +1,13 @@
 package br.edu.ifpe.achadosperdidosifpe.model
 
 import java.util.Date
+
 enum class Tipo {
     PERDIDO,
     ENCONTRADO
 }
 
-enum class Status{
+enum class Status {
     PERDIDO,
     NO_SETOR,
     RESOLVIDO
@@ -30,6 +31,6 @@ data class Item(
     val descricao: String? = null,
     val metodoDevolucao: MetodoDevolucao? = null,
     val perguntaVerificacao: String? = null,
-    val fotoMockResId: Int? = null,
+    val fotoUrl: String? = null, // <-- Mudado de Int? para String? (URL da imagem no Storage)
     val data: Date
 )

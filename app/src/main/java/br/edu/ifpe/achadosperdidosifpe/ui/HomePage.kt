@@ -29,73 +29,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.R
 import br.edu.ifpe.achadosperdidosifpe.model.Item
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import java.util.Date
-
-val itens = listOf(
-    Item(
-        id = "1",
-        usuarioId = "user_01",
-        tipo = Tipo.ENCONTRADO,
-        status = Status.NO_SETOR,
-        nome = "Carteira preta",
-        categoria = "Acess rios",
-        localizacao = "Bloco B - Piso 2, sala 203",
-        fotoMockResId = R.drawable.carteira,
-        data = Date()
-    ),
-    Item(
-        id = "2",
-        usuarioId = "user_02",
-        tipo = Tipo.PERDIDO,
-        status = Status.PERDIDO,
-        nome = "Fone de ouvido branco",
-        categoria = "Eletr nicos",
-        localizacao = "Bloco A - Pr ximo   lanchonete",
-        fotoMockResId = null,
-        data = Date()
-    ),
-    Item(
-        id = "3",
-        usuarioId = "user_03",
-        tipo = Tipo.ENCONTRADO,
-        status = Status.NO_SETOR,
-        nome = "Chaveiro com 3 chaves",
-        categoria = "Outros",
-        localizacao = "P tio Central",
-        fotoMockResId = null,
-        data = Date()
-    ),
-    Item(
-        id = "4",
-        usuarioId = "user_04",
-        tipo = Tipo.PERDIDO,
-        status = Status.PERDIDO,
-        nome = "Garrafa t rmica azul",
-        categoria = "Acess rios",
-        localizacao = "Quadra Poliesportiva",
-        fotoMockResId = null,
-        data = Date()
-    ),
-    Item(
-        id = "5",
-        usuarioId = "user_05",
-        tipo = Tipo.ENCONTRADO,
-        status = Status.RESOLVIDO,
-        nome = "Livro de C lculo I",
-        categoria = "Material escolar",
-        localizacao = "Biblioteca Central",
-        fotoMockResId = null,
-        data = Date()
-    )
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(
     modifier: Modifier = Modifier,
     onItemClick: (String) -> Unit = {},
+    viewModel: MainViewModel,
     onLostItem: () -> Unit = {},
     onFindItem: () -> Unit = {},
     onSeeAllClick: () -> Unit = {}
@@ -131,6 +75,10 @@ fun HomePage(
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
+        viewModel.items.take(2).forEach { item ->
+            ItemCard(item = item, onClick = { onItemClick(item.id) })
+            Spacer(modifier = Modifier.height(10.dp))
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -293,7 +241,7 @@ fun HomePage(
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        itens.take(2).forEach { item ->
+        viewModel.items.take(2).forEach { item ->
             ItemCard(item = item, onClick = { onItemClick(item.id) })
             Spacer(modifier = Modifier.height(10.dp))
         }
@@ -323,9 +271,9 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (item.fotoMockResId != null) {
-                    Image(
-                        painter = painterResource(id = item.fotoMockResId),
+                if (!item.fotoUrl.isNullOrEmpty()) {
+                    coil.compose.AsyncImage(
+                        model = item.fotoUrl,
                         contentDescription = "Foto de ${item.nome}",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

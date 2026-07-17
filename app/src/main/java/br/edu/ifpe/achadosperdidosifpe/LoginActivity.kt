@@ -1,8 +1,11 @@
 package br.edu.ifpe.achadosperdidosifpe
 
+import android.app.Activity
+import com.google.firebase.auth.auth
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,6 +34,8 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.platform.LocalContext
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.AchadosPerdidosIFPETheme
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 val IfpeGreen = Color(0xFF00642F)
 
@@ -193,11 +198,25 @@ fun LoginScreen(modifier: Modifier = Modifier,
 
                     Button(
                         onClick = {
-                            context.startActivity(
-                            Intent(context, MainActivity::class.java).setFlags(
-                                FLAG_ACTIVITY_SINGLE_TOP
-                            )
-                        )
+                            if (email.isBlank() || password.isBlank()) {
+                                Toast.makeText(context, "Preencha e-mail e senha", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            Firebase.auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        context.startActivity(
+                                            Intent(context, MainActivity::class.java).setFlags(FLAG_ACTIVITY_SINGLE_TOP)
+                                        )
+                                        (context as? Activity)?.finish()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Falha no login: ${task.exception?.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
                         },
                         modifier = Modifier
                             .fillMaxWidth()

@@ -1,5 +1,6 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,12 +44,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.edu.ifpe.achadosperdidosifpe.db.fb.DatabaseProvider
+import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBUser
+import br.edu.ifpe.achadosperdidosifpe.model.User
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -266,8 +273,52 @@ fun RegisterPage(
                 )
             }
 
+            val context = LocalContext.current
+            var isLoading by remember { mutableStateOf(false) }
+
+
             Button(
-                onClick = { /* TODO: criar conta */ },
+                onClick = {
+                    if (nomeCompleto.isBlank() || email.isBlank() || senha.isBlank() || cursoSelecionado.isBlank()) {
+                        Toast.makeText(context, "Preencha todos os campos obrigatórios", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (senha.length < 6) {
+                        Toast.makeText(context, "A senha deve ter no mínimo 6 caracteres", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (senha != confirmarSenha) {
+                        Toast.makeText(context, "As senhas não coincidem", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    isLoading = true
+                    Firebase.auth.createUserWithEmailAndPassword(email, senha)
+                        .addOnCompleteListener { task ->
+                            isLoading = false
+                            if (task.isSuccessful) {
+                                val uid = task.result?.user?.uid ?: return@addOnCompleteListener
+                                val novoUsuario = User(
+                                    id = uid,
+                                    nome = nomeCompleto,
+                                    email = email,
+                                    matricula = matricula.ifBlank { null },
+                                    curso = cursoSelecionado,
+                                    tipo = "aluno"
+                                )
+                                DatabaseProvider.database.register(novoUsuario.toFBUser())
+                                Toast.makeText(context, "Cadastro realizado com sucesso!", Toast.LENGTH_LONG).show()
+                                onNavigateBack()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Falha no cadastro: ${task.exception?.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
@@ -275,7 +326,7 @@ fun RegisterPage(
                 colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
             ) {
                 Text(
-                    text = "Criar Conta",
+                    text = if (isLoading) "Criando conta..." else "Criar Conta",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )

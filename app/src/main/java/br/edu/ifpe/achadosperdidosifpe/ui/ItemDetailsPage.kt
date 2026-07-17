@@ -110,9 +110,9 @@ fun ItemDetailsPage(
                         .background(Color(0xFFF2F2F2), shape = RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (item.fotoMockResId != null) {
-                        Image(
-                            painter = painterResource(id = item.fotoMockResId),
+                    if (!item.fotoUrl.isNullOrEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = item.fotoUrl,
                             contentDescription = "Foto de ${item.nome}",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
