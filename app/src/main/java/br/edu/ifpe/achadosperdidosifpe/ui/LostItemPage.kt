@@ -35,6 +35,8 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -61,6 +63,7 @@ fun LostItemPage(
     var descricao by remember { mutableStateOf("") }
     var fotoUrl by remember { mutableStateOf<String?>(null) }
     var showMapDialog by remember { mutableStateOf(false) }
+    var showPhotoOptions by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -77,11 +80,27 @@ fun LostItemPage(
         showMapDialog = true
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
+    val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             fotoUrl = uri.toString()
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            try {
+                val file = File(context.cacheDir, "lost_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                }
+                fotoUrl = file.absolutePath
+            } catch (e: Exception) {
+                Toast.makeText(context, "Erro ao salvar foto da câmera", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -93,6 +112,7 @@ fun LostItemPage(
         "Material escolar",
         "Outros"
     )
+
     val scrollState = rememberScrollState()
 
     Column(
@@ -151,7 +171,7 @@ fun LostItemPage(
                     .fillMaxWidth()
                     .height(110.dp)
                     .border(1.5.dp, Color(0xFFBBBBBB), RoundedCornerShape(10.dp))
-                    .clickable { cameraLauncher.launch("image/*") },
+                    .clickable { showPhotoOptions = true },
                 contentAlignment = Alignment.Center
             ) {
                 if (fotoUrl != null) {
@@ -362,6 +382,30 @@ fun LostItemPage(
                 )
             }
         }
+    }
+
+    if (showPhotoOptions) {
+        AlertDialog(
+            onDismissRequest = { showPhotoOptions = false },
+            title = { Text("Adicionar Foto") },
+            text = { Text("Selecione se deseja tirar uma foto com a câmera ou escolher um arquivo da sua galeria.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPhotoOptions = false
+                    cameraLauncher.launch(null)
+                }) {
+                    Text("Câmera", color = IfpeGreen)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPhotoOptions = false
+                    galleryLauncher.launch("image/*")
+                }) {
+                    Text("Galeria", color = IfpeGreen)
+                }
+            }
+        )
     }
 
     if (showMapDialog) {
