@@ -1,7 +1,12 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
 import android.widget.Toast
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,14 +20,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import br.edu.ifpe.achadosperdidosifpe.model.Status
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.rememberCameraPositionState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,6 +59,31 @@ fun LostItemPage(
     var data by remember { mutableStateOf("") }
     var caracteristicas by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
+    var fotoUrl by remember { mutableStateOf<String?>(null) }
+    var showMapDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasLocationPermission = isGranted
+        showMapDialog = true
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            fotoUrl = uri.toString()
+        }
+    }
 
     val categorias = listOf(
         "Documentos",
@@ -57,7 +94,6 @@ fun LostItemPage(
         "Outros"
     )
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -97,6 +133,50 @@ fun LostItemPage(
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = null,
+                    tint = IfpeGreenMid,
+                    modifier = Modifier.size(15.dp)
+                )
+                Text("Foto de Referência (opcional)", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .border(1.5.dp, Color(0xFFBBBBBB), RoundedCornerShape(10.dp))
+                    .clickable { cameraLauncher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (fotoUrl != null) {
+                    coil.compose.AsyncImage(
+                        model = fotoUrl,
+                        contentDescription = "Foto selecionada",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            tint = Color.LightGray,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Text("Clique para adicionar foto do item", fontSize = 13.sp, color = Color.Gray)
+                    }
+                }
+            }
+
             FormField(label = "O que você perdeu?") {
                 OutlinedTextField(
                     value = nome,
@@ -165,12 +245,19 @@ fun LostItemPage(
                     onValueChange = { localizacao = it },
                     placeholder = { Text("Selecionar no mapa...", color = Color.LightGray) },
                     trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Map,
-                            contentDescription = "Abrir mapa",
-                            tint = IfpeGreenMid,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        IconButton(onClick = {
+                            if (!hasLocationPermission) {
+                                permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
+                            showMapDialog = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Map,
+                                contentDescription = "Abrir mapa",
+                                tint = IfpeGreenMid,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
@@ -236,7 +323,6 @@ fun LostItemPage(
                         } catch (e: Exception) {
                             Date()
                         }
-
                         val item = Item(
                             id = UUID.randomUUID().toString(),
                             usuarioId = viewModel.user?.id ?: "user_anonimo",
@@ -248,9 +334,9 @@ fun LostItemPage(
                             localizacao = localizacao,
                             caracteristicasUnicas = caracteristicas.ifBlank { null },
                             descricao = descricao.ifBlank { null },
+                            fotoUrl = fotoUrl,
                             data = parsedDate
                         )
-
                         viewModel.addItem(item)
                         Toast.makeText(context, "Item perdido registrado!", Toast.LENGTH_SHORT).show()
                         onNavigateToItems()
@@ -274,6 +360,43 @@ fun LostItemPage(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+            }
+        }
+    }
+
+    if (showMapDialog) {
+        Dialog(onDismissRequest = { showMapDialog = false }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(450.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        val cameraPositionState = rememberCameraPositionState()
+                        GoogleMap(
+                            modifier = Modifier.fillMaxSize(),
+                            cameraPositionState = cameraPositionState,
+                            properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
+                            uiSettings = MapUiSettings(myLocationButtonEnabled = true),
+                            onMapClick = { latLng ->
+                                localizacao = "Lat: ${String.format(Locale.US, "%.4f", latLng.latitude)}, Lng: ${String.format(Locale.US, "%.4f", latLng.longitude)}"
+                                showMapDialog = false
+                            }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showMapDialog = false }) {
+                            Text("Cancelar", color = IfpeGreen)
+                        }
+                    }
+                }
             }
         }
     }
