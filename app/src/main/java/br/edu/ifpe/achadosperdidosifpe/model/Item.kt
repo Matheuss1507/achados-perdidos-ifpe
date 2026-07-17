@@ -1,5 +1,6 @@
 package br.edu.ifpe.achadosperdidosifpe.model
 
+import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 enum class Tipo {
@@ -19,18 +20,21 @@ enum class MetodoDevolucao {
 }
 
 data class Item(
-    val id: String,
-    val usuarioId: String,
-    val tipo: Tipo,
-    val status: Status,
-    val nome: String,
-    val categoria: String,
+    val id: String = "",
+    val usuarioId: String = "",
+    val tipo: Tipo = Tipo.PERDIDO,
+    val status: Status = Status.PERDIDO,
+    val nome: String = "",
+    val categoria: String = "",
     val corPrincipal: String? = null,
-    val localizacao: String,
+    val localizacao: String = "",
     val caracteristicasUnicas: String? = null,
     val descricao: String? = null,
     val metodoDevolucao: MetodoDevolucao? = null,
     val perguntaVerificacao: String? = null,
-    val fotoUrl: String? = null, // <-- Mudado de Int? para String? (URL da imagem no Storage)
-    val data: Date
+
+    val fotoUrl: String? = null,
+
+    @ServerTimestamp
+    val data: Date? = null
 )

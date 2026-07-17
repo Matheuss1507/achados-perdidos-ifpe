@@ -1,56 +1,29 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,8 +49,8 @@ fun FindItemPage(
         "Material escolar",
         "Outros"
     )
-
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -106,9 +79,7 @@ fun FindItemPage(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
-
         HorizontalDivider(color = Color(0xFFEEEEEE))
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -139,7 +110,6 @@ fun FindItemPage(
                     lineHeight = 18.sp
                 )
             }
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -152,7 +122,6 @@ fun FindItemPage(
                 )
                 Text("Foto do Item (opcional)", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
             }
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -174,7 +143,6 @@ fun FindItemPage(
                     Text("Sem detalhes muito específicos", fontSize = 11.sp, color = Color.LightGray)
                 }
             }
-
             FormField(label = "O que você encontrou?") {
                 OutlinedTextField(
                     value = nome,
@@ -186,7 +154,6 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
-
             FormField(label = "Categoria") {
                 ExposedDropdownMenuBox(
                     expanded = categoriaExpanded,
@@ -222,7 +189,6 @@ fun FindItemPage(
                     }
                 }
             }
-
             FormField(label = "Cor Principal", icon = Icons.Default.Palette) {
                 OutlinedTextField(
                     value = corPrincipal,
@@ -234,9 +200,7 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
-
             HorizontalDivider(color = Color(0xFFEEEEEE))
-
             FormField(label = "Onde encontrou?", icon = Icons.Default.LocationOn) {
                 OutlinedTextField(
                     value = localizacao,
@@ -256,7 +220,6 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
-
             FormField(label = "Quando encontrou?", icon = Icons.Default.CalendarMonth) {
                 OutlinedTextField(
                     value = data,
@@ -268,10 +231,8 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
-
             HorizontalDivider(color = Color(0xFFEEEEEE))
-
-            FormField(label = "Características Únicas", icon = Icons.Default.Fingerprint) {
+            FormField(label = "Características únicas", icon = Icons.Default.Fingerprint) {
                 OutlinedTextField(
                     value = caracteristicas,
                     onValueChange = { caracteristicas = it },
@@ -289,7 +250,6 @@ fun FindItemPage(
                     maxLines = 4
                 )
             }
-
             FormField(label = "Descrição Adicional") {
                 OutlinedTextField(
                     value = descricao,
@@ -303,9 +263,46 @@ fun FindItemPage(
                     maxLines = 3
                 )
             }
-
             Button(
-                onClick = { onNavigateToItems () },
+                onClick = {
+                    if (nome.isBlank() || categoriaSelecionada.isBlank() || localizacao.isBlank() || data.isBlank()) {
+                        Toast.makeText(context, "Por favor, preencha os campos obrigatórios (*)", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val parsedDate = try {
+                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(data) ?: Date()
+                        } catch (e: Exception) {
+                            Date()
+                        }
+
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "user_anonimo"
+                        val db = FirebaseFirestore.getInstance()
+
+                        val itemData = hashMapOf(
+                            "usuarioId" to userId,
+                            "tipo" to "ENCONTRADO",
+                            "status" to "NO_SETOR",
+                            "nome" to nome,
+                            "categoria" to categoriaSelecionada,
+                            "corPrincipal" to corPrincipal.ifBlank { null },
+                            "localizacao" to localizacao,
+                            "caracteristicasUnicas" to caracteristicas.ifBlank { null },
+                            "descricao" to descricao.ifBlank { null },
+                            "data" to parsedDate
+                        )
+
+                        db.collection("itens")
+                            .add(itemData)
+                            .addOnSuccessListener { documentRef ->
+                                val docId = documentRef.id
+                                db.collection("itens").document(docId).update("id", docId)
+                                Toast.makeText(context, "Item encontrado registrado!", Toast.LENGTH_SHORT).show()
+                                onNavigateToItems()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "Erro ao salvar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
@@ -319,16 +316,12 @@ fun FindItemPage(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Registrar item perdido",
+                    text = "Registrar item encontrado",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
-
                 )
             }
         }
-}}
-
-
-
-
+    }
+}

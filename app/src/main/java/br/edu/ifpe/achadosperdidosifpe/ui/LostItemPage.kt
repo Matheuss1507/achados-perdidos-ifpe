@@ -1,5 +1,6 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,9 +15,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 val IfpeGreen = Color(0xFF00642F)
 val IfpeGreenMid = Color(0xFF00913F)
@@ -45,8 +52,8 @@ fun LostItemPage(
         "Material escolar",
         "Outros"
     )
-
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -75,9 +82,7 @@ fun LostItemPage(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
-
         HorizontalDivider(color = Color(0xFFEEEEEE))
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -86,7 +91,6 @@ fun LostItemPage(
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             FormField(label = "O que você perdeu?") {
                 OutlinedTextField(
                     value = nome,
@@ -98,7 +102,6 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
-
             FormField(label = "Categoria") {
                 ExposedDropdownMenuBox(
                     expanded = categoriaExpanded,
@@ -134,7 +137,6 @@ fun LostItemPage(
                     }
                 }
             }
-
             FormField(label = "Cor Principal", icon = Icons.Default.Palette) {
                 OutlinedTextField(
                     value = corPrincipal,
@@ -146,9 +148,7 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
-
             HorizontalDivider(color = Color(0xFFEEEEEE))
-
             FormField(label = "Onde perdeu?", icon = Icons.Default.LocationOn) {
                 OutlinedTextField(
                     value = localizacao,
@@ -168,7 +168,6 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
-
             FormField(label = "Quando perdeu?", icon = Icons.Default.CalendarMonth) {
                 OutlinedTextField(
                     value = data,
@@ -180,10 +179,8 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
-
             HorizontalDivider(color = Color(0xFFEEEEEE))
-
-            FormField(label = "Características Únicas", icon = Icons.Default.Fingerprint) {
+            FormField(label = "Características únicas", icon = Icons.Default.Fingerprint) {
                 OutlinedTextField(
                     value = caracteristicas,
                     onValueChange = { caracteristicas = it },
@@ -201,7 +198,6 @@ fun LostItemPage(
                     maxLines = 4
                 )
             }
-
             FormField(label = "Descrição Adicional") {
                 OutlinedTextField(
                     value = descricao,
@@ -215,9 +211,46 @@ fun LostItemPage(
                     maxLines = 3
                 )
             }
-
             Button(
-                onClick = { onNavigateToItems() },
+                onClick = {
+                    if (nome.isBlank() || categoriaSelecionada.isBlank() || localizacao.isBlank() || data.isBlank()) {
+                        Toast.makeText(context, "Por favor, preencha os campos obrigatórios (*)", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val parsedDate = try {
+                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(data) ?: Date()
+                        } catch (e: Exception) {
+                            Date()
+                        }
+
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "user_anonimo"
+                        val db = FirebaseFirestore.getInstance()
+
+                        val itemData = hashMapOf(
+                            "usuarioId" to userId,
+                            "tipo" to "PERDIDO",
+                            "status" to "PERDIDO",
+                            "nome" to nome,
+                            "categoria" to categoriaSelecionada,
+                            "corPrincipal" to corPrincipal.ifBlank { null },
+                            "localizacao" to localizacao,
+                            "caracteristicasUnicas" to caracteristicas.ifBlank { null },
+                            "descricao" to descricao.ifBlank { null },
+                            "data" to parsedDate
+                        )
+
+                        db.collection("itens")
+                            .add(itemData)
+                            .addOnSuccessListener { documentRef ->
+                                val docId = documentRef.id
+                                db.collection("itens").document(docId).update("id", docId)
+                                Toast.makeText(context, "Item perdido registrado!", Toast.LENGTH_SHORT).show()
+                                onNavigateToItems()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "Erro ao salvar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),

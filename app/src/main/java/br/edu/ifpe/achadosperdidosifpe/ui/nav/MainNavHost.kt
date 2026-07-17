@@ -3,6 +3,10 @@ package br.edu.ifpe.achadosperdidosifpe.ui.nav
 import android.app.Activity import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -99,6 +103,7 @@ fun MainNavHost(
                 onChatClick = { navController.navigate(Route.Chat) }
             )
         }
+
         composable<Route.Register> {
             val context = LocalContext.current
             RegisterPage(

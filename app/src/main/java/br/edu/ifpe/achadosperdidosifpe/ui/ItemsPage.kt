@@ -26,6 +26,8 @@ import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 
 private val GreenFilter = Color(0xFF00913F)
 
@@ -72,7 +74,7 @@ fun ItemsPage(
                 modifier = Modifier.padding(start = 4.dp)
             )
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = {  }) {
+            IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = "Filtrar Itens",
@@ -80,7 +82,9 @@ fun ItemsPage(
                 )
             }
         }
+
         HorizontalDivider(color = Color(0xFFEEEEEE))
+
         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             OutlinedTextField(
                 value = searchText,
@@ -102,6 +106,7 @@ fun ItemsPage(
                 )
             )
         }
+
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.White,
@@ -135,6 +140,7 @@ fun ItemsPage(
                 unselectedContentColor = Color.Gray
             )
         }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -151,7 +157,7 @@ fun ItemsPage(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Nenhum item corresponde   busca.",
+                        text = "Nenhum item corresponde à busca.",
                         color = Color.Gray,
                         fontSize = 14.sp
                     )
@@ -195,7 +201,9 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     modifier = Modifier.size(24.dp)
                 )
             }
+
             Spacer(modifier = Modifier.width(12.dp))
+
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -211,6 +219,7 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
                     val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
+
                     Surface(
                         color = tagBgColor,
                         shape = RoundedCornerShape(4.dp)
@@ -224,16 +233,18 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                         )
                     }
                 }
+
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = Color.Black
                 )
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = " cone de localiza",
+                        contentDescription = "Ícone de localização",
                         tint = Color.LightGray,
                         modifier = Modifier.size(14.dp)
                     )
@@ -246,7 +257,9 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",
