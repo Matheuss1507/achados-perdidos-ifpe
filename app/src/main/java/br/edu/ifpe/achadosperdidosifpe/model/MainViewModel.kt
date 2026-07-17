@@ -9,6 +9,9 @@ import br.edu.ifpe.achadosperdidosifpe.db.fb.FBUser
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBItem
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toItem
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toUser
+import android.net.Uri
+import com.google.firebase.storage.storage
+import java.io.File
 
 class MainViewModel(
     private val db: FBDatabase
@@ -66,5 +69,38 @@ class MainViewModel(
 
     override fun onItemRemoved(item: FBItem) {
         _items.remove(item.id)
+    }
+
+    fun addItemComFoto(item: Item, localPath: String?, onComplete: (Boolean) -> Unit) {
+        if (localPath.isNullOrEmpty()) {
+
+            db.add(item.toFBItem())
+            onComplete(true)
+            return
+        }
+
+        val fileUri = if (localPath.startsWith("/")) {
+            Uri.fromFile(File(localPath))
+        } else {
+            Uri.parse(localPath)
+        }
+
+        val storageRef = com.google.firebase.Firebase.storage.reference
+            .child("fotos_itens/${item.id}.jpg")
+
+        storageRef.putFile(fileUri)
+            .addOnSuccessListener {
+
+                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    val itemComUrlRemota = item.copy(fotoUrl = downloadUri.toString())
+                    db.add(itemComUrlRemota.toFBItem())
+                    onComplete(true)
+                }.addOnFailureListener {
+                    onComplete(false)
+                }
+            }
+            .addOnFailureListener {
+                onComplete(false)
+            }
     }
 }

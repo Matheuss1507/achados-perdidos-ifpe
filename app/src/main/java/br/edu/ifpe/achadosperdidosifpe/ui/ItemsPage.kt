@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
@@ -24,10 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
-import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import androidx.compose.ui.layout.ContentScale
+
 
 private val GreenFilter = Color(0xFF00913F)
 
@@ -194,16 +192,24 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Item sem foto",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(24.dp)
-                )
+                // CORREÇÃO: Renderiza a foto dinamicamente se ela existir
+                if (!item.fotoUrl.isNullOrEmpty()) {
+                    coil.compose.AsyncImage(
+                        model = item.fotoUrl,
+                        contentDescription = "Foto de ${item.nome}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Item sem foto",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -219,7 +225,6 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
                     val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
-
                     Surface(
                         color = tagBgColor,
                         shape = RoundedCornerShape(4.dp)
@@ -233,14 +238,12 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                         )
                     }
                 }
-
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = Color.Black
                 )
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
@@ -257,9 +260,7 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(8.dp))
-
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",

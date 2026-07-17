@@ -35,10 +35,8 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.platform.LocalContext
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.AchadosPerdidosIFPETheme
 import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-
-val IfpeGreen = Color(0xFF00642F)
-
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -41,10 +41,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-
-val IfpeGreen = Color(0xFF00642F)
-val IfpeGreenMid = Color(0xFF00913F)
-
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LostItemPage(
@@ -64,9 +62,9 @@ fun LostItemPage(
     var fotoUrl by remember { mutableStateOf<String?>(null) }
     var showMapDialog by remember { mutableStateOf(false) }
     var showPhotoOptions by remember { mutableStateOf(false) }
+    var isSalvando by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -104,15 +102,7 @@ fun LostItemPage(
         }
     }
 
-    val categorias = listOf(
-        "Documentos",
-        "Eletrônicos",
-        "Acessórios",
-        "Vestuário",
-        "Material escolar",
-        "Outros"
-    )
-
+    val categorias = listOf("Documentos", "Eletrônicos", "Acessórios", "Vestuário", "Material escolar", "Outros")
     val scrollState = rememberScrollState()
 
     Column(
@@ -171,7 +161,7 @@ fun LostItemPage(
                     .fillMaxWidth()
                     .height(110.dp)
                     .border(1.5.dp, Color(0xFFBBBBBB), RoundedCornerShape(10.dp))
-                    .clickable { showPhotoOptions = true },
+                    .clickable { if (!isSalvando) showPhotoOptions = true },
                 contentAlignment = Alignment.Center
             ) {
                 if (fotoUrl != null) {
@@ -205,28 +195,28 @@ fun LostItemPage(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isSalvando
                 )
             }
 
             FormField(label = "Categoria") {
                 ExposedDropdownMenuBox(
                     expanded = categoriaExpanded,
-                    onExpandedChange = { categoriaExpanded = it }
+                    onExpandedChange = { if (!isSalvando) categoriaExpanded = it }
                 ) {
                     OutlinedTextField(
                         value = categoriaSelecionada,
                         onValueChange = {},
                         readOnly = true,
                         placeholder = { Text("Selecione...", color = Color.LightGray) },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaExpanded)
-                        },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         shape = RoundedCornerShape(10.dp),
-                        colors = fieldColors()
+                        colors = fieldColors(),
+                        enabled = !isSalvando
                     )
                     ExposedDropdownMenu(
                         expanded = categoriaExpanded,
@@ -253,7 +243,8 @@ fun LostItemPage(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isSalvando
                 )
             }
 
@@ -265,12 +256,15 @@ fun LostItemPage(
                     onValueChange = { localizacao = it },
                     placeholder = { Text("Selecionar no mapa...", color = Color.LightGray) },
                     trailingIcon = {
-                        IconButton(onClick = {
-                            if (!hasLocationPermission) {
-                                permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                        IconButton(
+                            enabled = !isSalvando,
+                            onClick = {
+                                if (!hasLocationPermission) {
+                                    permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                                }
+                                showMapDialog = true
                             }
-                            showMapDialog = true
-                        }) {
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Map,
                                 contentDescription = "Abrir mapa",
@@ -282,7 +276,8 @@ fun LostItemPage(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isSalvando
                 )
             }
 
@@ -294,7 +289,8 @@ fun LostItemPage(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isSalvando
                 )
             }
 
@@ -304,18 +300,12 @@ fun LostItemPage(
                 OutlinedTextField(
                     value = caracteristicas,
                     onValueChange = { caracteristicas = it },
-                    placeholder = {
-                        Text(
-                            "Ex: Tem um adesivo do Python, página 47 marcada.",
-                            color = Color.LightGray
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(96.dp),
+                    placeholder = { Text("Ex: Tem um adesivo do Python, página 47 marcada.", color = Color.LightGray) },
+                    modifier = Modifier.fillMaxWidth().height(96.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
-                    maxLines = 4
+                    maxLines = 4,
+                    enabled = !isSalvando
                 )
             }
 
@@ -324,12 +314,11 @@ fun LostItemPage(
                     value = descricao,
                     onValueChange = { descricao = it },
                     placeholder = { Text("Qualquer informação adicional...", color = Color.LightGray) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
+                    modifier = Modifier.fillMaxWidth().height(80.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
-                    maxLines = 3
+                    maxLines = 3,
+                    enabled = !isSalvando
                 )
             }
 
@@ -338,11 +327,13 @@ fun LostItemPage(
                     if (nome.isBlank() || categoriaSelecionada.isBlank() || localizacao.isBlank() || data.isBlank()) {
                         Toast.makeText(context, "Por favor, preencha os campos obrigatórios (*)", Toast.LENGTH_SHORT).show()
                     } else {
+                        isSalvando = true
                         val parsedDate = try {
                             SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(data) ?: Date()
                         } catch (e: Exception) {
                             Date()
                         }
+
                         val item = Item(
                             id = UUID.randomUUID().toString(),
                             usuarioId = viewModel.user?.id ?: "user_anonimo",
@@ -354,32 +345,44 @@ fun LostItemPage(
                             localizacao = localizacao,
                             caracteristicasUnicas = caracteristicas.ifBlank { null },
                             descricao = descricao.ifBlank { null },
-                            fotoUrl = fotoUrl,
+                            fotoUrl = null,
                             data = parsedDate
                         )
-                        viewModel.addItem(item)
-                        Toast.makeText(context, "Item perdido registrado!", Toast.LENGTH_SHORT).show()
-                        onNavigateToItems()
+
+                        viewModel.addItemComFoto(item, fotoUrl) { sucesso ->
+                            isSalvando = false
+                            if (sucesso) {
+                                Toast.makeText(context, "Item perdido registrado!", Toast.LENGTH_SHORT).show()
+                                onNavigateToItems()
+                            } else {
+                                Toast.makeText(context, "Falha ao enviar dados ou imagem.", Toast.LENGTH_LONG).show()
+                            }
+                        }
                     }
                 },
+                enabled = !isSalvando,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Registrar item perdido",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                if (isSalvando) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Registrar item perdido",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
@@ -393,17 +396,13 @@ fun LostItemPage(
                 TextButton(onClick = {
                     showPhotoOptions = false
                     cameraLauncher.launch(null)
-                }) {
-                    Text("Câmera", color = IfpeGreen)
-                }
+                }) { Text("Câmera", color = IfpeGreen) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showPhotoOptions = false
                     galleryLauncher.launch("image/*")
-                }) {
-                    Text("Galeria", color = IfpeGreen)
-                }
+                }) { Text("Galeria", color = IfpeGreen) }
             }
         )
     }
@@ -411,9 +410,7 @@ fun LostItemPage(
     if (showMapDialog) {
         Dialog(onDismissRequest = { showMapDialog = false }) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(450.dp),
+                modifier = Modifier.fillMaxWidth().height(450.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -431,9 +428,7 @@ fun LostItemPage(
                         )
                     }
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = { showMapDialog = false }) {
