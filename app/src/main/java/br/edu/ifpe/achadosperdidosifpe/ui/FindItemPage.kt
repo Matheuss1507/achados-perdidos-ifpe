@@ -19,16 +19,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
+import br.edu.ifpe.achadosperdidosifpe.model.Item
+import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import br.edu.ifpe.achadosperdidosifpe.model.Status
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindItemPage(
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel,
     onNavigateBack: () -> Unit = {},
     onNavigateToItems: () -> Unit = {}
 ) {
@@ -79,7 +83,9 @@ fun FindItemPage(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
+
         HorizontalDivider(color = Color(0xFFEEEEEE))
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,13 +109,13 @@ fun FindItemPage(
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    text = "Dica de Segurança: Não inclua detalhes muito específicos na foto. " +
-                            "Deixe alguns detalhes para verificação do dono.",
+                    text = "Dica de Segurança: Não inclua detalhes muito específicos na foto. Deixe alguns detalhes para verificação do dono.",
                     fontSize = 12.sp,
                     color = Color(0xFF5D4037),
                     lineHeight = 18.sp
                 )
             }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -122,6 +128,7 @@ fun FindItemPage(
                 )
                 Text("Foto do Item (opcional)", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
             }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,6 +150,7 @@ fun FindItemPage(
                     Text("Sem detalhes muito específicos", fontSize = 11.sp, color = Color.LightGray)
                 }
             }
+
             FormField(label = "O que você encontrou?") {
                 OutlinedTextField(
                     value = nome,
@@ -154,6 +162,7 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
+
             FormField(label = "Categoria") {
                 ExposedDropdownMenuBox(
                     expanded = categoriaExpanded,
@@ -189,6 +198,7 @@ fun FindItemPage(
                     }
                 }
             }
+
             FormField(label = "Cor Principal", icon = Icons.Default.Palette) {
                 OutlinedTextField(
                     value = corPrincipal,
@@ -200,7 +210,9 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
+
             HorizontalDivider(color = Color(0xFFEEEEEE))
+
             FormField(label = "Onde encontrou?", icon = Icons.Default.LocationOn) {
                 OutlinedTextField(
                     value = localizacao,
@@ -220,6 +232,7 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
+
             FormField(label = "Quando encontrou?", icon = Icons.Default.CalendarMonth) {
                 OutlinedTextField(
                     value = data,
@@ -231,7 +244,9 @@ fun FindItemPage(
                     singleLine = true
                 )
             }
+
             HorizontalDivider(color = Color(0xFFEEEEEE))
+
             FormField(label = "Características únicas", icon = Icons.Default.Fingerprint) {
                 OutlinedTextField(
                     value = caracteristicas,
@@ -250,6 +265,7 @@ fun FindItemPage(
                     maxLines = 4
                 )
             }
+
             FormField(label = "Descrição Adicional") {
                 OutlinedTextField(
                     value = descricao,
@@ -263,6 +279,7 @@ fun FindItemPage(
                     maxLines = 3
                 )
             }
+
             Button(
                 onClick = {
                     if (nome.isBlank() || categoriaSelecionada.isBlank() || localizacao.isBlank() || data.isBlank()) {
@@ -274,33 +291,23 @@ fun FindItemPage(
                             Date()
                         }
 
-                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "user_anonimo"
-                        val db = FirebaseFirestore.getInstance()
-
-                        val itemData = hashMapOf(
-                            "usuarioId" to userId,
-                            "tipo" to "ENCONTRADO",
-                            "status" to "NO_SETOR",
-                            "nome" to nome,
-                            "categoria" to categoriaSelecionada,
-                            "corPrincipal" to corPrincipal.ifBlank { null },
-                            "localizacao" to localizacao,
-                            "caracteristicasUnicas" to caracteristicas.ifBlank { null },
-                            "descricao" to descricao.ifBlank { null },
-                            "data" to parsedDate
+                        val item = Item(
+                            id = UUID.randomUUID().toString(),
+                            usuarioId = viewModel.user?.id ?: "user_anonimo",
+                            tipo = Tipo.ENCONTRADO,
+                            status = Status.NO_SETOR,
+                            nome = nome,
+                            categoria = categoriaSelecionada,
+                            corPrincipal = corPrincipal.ifBlank { null },
+                            localizacao = localizacao,
+                            caracteristicasUnicas = caracteristicas.ifBlank { null },
+                            descricao = descricao.ifBlank { null },
+                            data = parsedDate
                         )
 
-                        db.collection("itens")
-                            .add(itemData)
-                            .addOnSuccessListener { documentRef ->
-                                val docId = documentRef.id
-                                db.collection("itens").document(docId).update("id", docId)
-                                Toast.makeText(context, "Item encontrado registrado!", Toast.LENGTH_SHORT).show()
-                                onNavigateToItems()
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(context, "Erro ao salvar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                            }
+                        viewModel.addItem(item)
+                        Toast.makeText(context, "Item encontrado registrado!", Toast.LENGTH_SHORT).show()
+                        onNavigateToItems()
                     }
                 },
                 modifier = Modifier

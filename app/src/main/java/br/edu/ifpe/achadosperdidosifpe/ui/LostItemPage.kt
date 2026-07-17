@@ -19,11 +19,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
+import br.edu.ifpe.achadosperdidosifpe.model.Item
+import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import br.edu.ifpe.achadosperdidosifpe.model.Status
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 val IfpeGreen = Color(0xFF00642F)
 val IfpeGreenMid = Color(0xFF00913F)
@@ -32,6 +35,7 @@ val IfpeGreenMid = Color(0xFF00913F)
 @Composable
 fun LostItemPage(
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel,
     onNavigateBack: () -> Unit = {},
     onNavigateToItems: () -> Unit = {}
 ) {
@@ -82,7 +86,9 @@ fun LostItemPage(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
+
         HorizontalDivider(color = Color(0xFFEEEEEE))
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,6 +108,7 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
+
             FormField(label = "Categoria") {
                 ExposedDropdownMenuBox(
                     expanded = categoriaExpanded,
@@ -137,6 +144,7 @@ fun LostItemPage(
                     }
                 }
             }
+
             FormField(label = "Cor Principal", icon = Icons.Default.Palette) {
                 OutlinedTextField(
                     value = corPrincipal,
@@ -148,7 +156,9 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
+
             HorizontalDivider(color = Color(0xFFEEEEEE))
+
             FormField(label = "Onde perdeu?", icon = Icons.Default.LocationOn) {
                 OutlinedTextField(
                     value = localizacao,
@@ -168,6 +178,7 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
+
             FormField(label = "Quando perdeu?", icon = Icons.Default.CalendarMonth) {
                 OutlinedTextField(
                     value = data,
@@ -179,7 +190,9 @@ fun LostItemPage(
                     singleLine = true
                 )
             }
+
             HorizontalDivider(color = Color(0xFFEEEEEE))
+
             FormField(label = "Características únicas", icon = Icons.Default.Fingerprint) {
                 OutlinedTextField(
                     value = caracteristicas,
@@ -198,6 +211,7 @@ fun LostItemPage(
                     maxLines = 4
                 )
             }
+
             FormField(label = "Descrição Adicional") {
                 OutlinedTextField(
                     value = descricao,
@@ -211,6 +225,7 @@ fun LostItemPage(
                     maxLines = 3
                 )
             }
+
             Button(
                 onClick = {
                     if (nome.isBlank() || categoriaSelecionada.isBlank() || localizacao.isBlank() || data.isBlank()) {
@@ -222,33 +237,23 @@ fun LostItemPage(
                             Date()
                         }
 
-                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "user_anonimo"
-                        val db = FirebaseFirestore.getInstance()
-
-                        val itemData = hashMapOf(
-                            "usuarioId" to userId,
-                            "tipo" to "PERDIDO",
-                            "status" to "PERDIDO",
-                            "nome" to nome,
-                            "categoria" to categoriaSelecionada,
-                            "corPrincipal" to corPrincipal.ifBlank { null },
-                            "localizacao" to localizacao,
-                            "caracteristicasUnicas" to caracteristicas.ifBlank { null },
-                            "descricao" to descricao.ifBlank { null },
-                            "data" to parsedDate
+                        val item = Item(
+                            id = UUID.randomUUID().toString(),
+                            usuarioId = viewModel.user?.id ?: "user_anonimo",
+                            tipo = Tipo.PERDIDO,
+                            status = Status.PERDIDO,
+                            nome = nome,
+                            categoria = categoriaSelecionada,
+                            corPrincipal = corPrincipal.ifBlank { null },
+                            localizacao = localizacao,
+                            caracteristicasUnicas = caracteristicas.ifBlank { null },
+                            descricao = descricao.ifBlank { null },
+                            data = parsedDate
                         )
 
-                        db.collection("itens")
-                            .add(itemData)
-                            .addOnSuccessListener { documentRef ->
-                                val docId = documentRef.id
-                                db.collection("itens").document(docId).update("id", docId)
-                                Toast.makeText(context, "Item perdido registrado!", Toast.LENGTH_SHORT).show()
-                                onNavigateToItems()
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(context, "Erro ao salvar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                            }
+                        viewModel.addItem(item)
+                        Toast.makeText(context, "Item perdido registrado!", Toast.LENGTH_SHORT).show()
+                        onNavigateToItems()
                     }
                 },
                 modifier = Modifier

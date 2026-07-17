@@ -60,6 +60,6 @@ fun Item.toFBItem(): FBItem {
         metodoDevolucao = this.metodoDevolucao?.name,
         perguntaVerificacao = this.perguntaVerificacao,
         fotoUrl = this.fotoUrl,
-        data = this.data
+        data = this.data ?: Date()
     )
 }

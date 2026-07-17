@@ -24,6 +24,7 @@ import br.edu.ifpe.achadosperdidosifpe.ui.ProfilePage
 import br.edu.ifpe.achadosperdidosifpe.ui.ItemDetailsPage
 import br.edu.ifpe.achadosperdidosifpe.ui.RegisterPage
 import br.edu.ifpe.achadosperdidosifpe.ui.LostItemPage
+import com.google.firebase.auth.auth
 
 @Composable
 fun MainNavHost(
@@ -61,6 +62,8 @@ fun MainNavHost(
             ProfilePage(
                 modifier = modifier,
                 onLogoutClick = {
+                    com.google.firebase.Firebase.auth.signOut()
+
                     val intent = Intent(context, LoginActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     }
@@ -73,6 +76,7 @@ fun MainNavHost(
         composable<Route.LostItem> {
             LostItemPage(
                 modifier = modifier,
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToItems = {
                     navController.navigate(Route.Items) {
@@ -85,6 +89,7 @@ fun MainNavHost(
         composable<Route.FindItem> {
             FindItemPage(
                 modifier = modifier,
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToItems = {
                     navController.navigate(Route.Items) {
