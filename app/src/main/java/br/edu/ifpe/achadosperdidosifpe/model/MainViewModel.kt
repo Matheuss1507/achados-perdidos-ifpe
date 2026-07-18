@@ -1,5 +1,6 @@
 package br.edu.ifpe.achadosperdidosifpe.model
 
+import android.graphics.BitmapFactory
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -9,9 +10,9 @@ import br.edu.ifpe.achadosperdidosifpe.db.fb.FBUser
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBItem
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toItem
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toUser
-import android.net.Uri
-import com.google.firebase.storage.storage
+import java.io.ByteArrayOutputStream
 import java.io.File
+import android.util.Base64
 
 class MainViewModel(
     private val db: FBDatabase
@@ -73,34 +74,34 @@ class MainViewModel(
 
     fun addItemComFoto(item: Item, localPath: String?, onComplete: (Boolean) -> Unit) {
         if (localPath.isNullOrEmpty()) {
-
             db.add(item.toFBItem())
             onComplete(true)
             return
         }
 
-        val fileUri = if (localPath.startsWith("/")) {
-            Uri.fromFile(File(localPath))
-        } else {
-            Uri.parse(localPath)
-        }
-
-        val storageRef = com.google.firebase.Firebase.storage.reference
-            .child("fotos_itens/${item.id}.jpg")
-
-        storageRef.putFile(fileUri)
-            .addOnSuccessListener {
-
-                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    val itemComUrlRemota = item.copy(fotoUrl = downloadUri.toString())
-                    db.add(itemComUrlRemota.toFBItem())
-                    onComplete(true)
-                }.addOnFailureListener {
-                    onComplete(false)
-                }
-            }
-            .addOnFailureListener {
+        try {
+            val file = File(localPath)
+            if (!file.exists()) {
                 onComplete(false)
+                return
             }
+
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+            val out = ByteArrayOutputStream()
+
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, out)
+            val bytes = out.toByteArray()
+
+            val base64String = Base64.encodeToString(bytes, Base64.NO_WRAP)
+
+            val dataUri = "data:image/jpeg;base64,$base64String"
+
+            val itemComFotoBase64 = item.copy(fotoUrl = dataUri)
+            db.add(itemComFotoBase64.toFBItem())
+            onComplete(true)
+        } catch (e: Exception) {
+            android.util.Log.e("ErroBase64", "Falha ao converter ou salvar imagem", e)
+            onComplete(false)
+        }
     }
 }
