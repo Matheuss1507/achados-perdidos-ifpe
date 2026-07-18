@@ -22,7 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.model.Chat
 import br.edu.ifpe.achadosperdidosifpe.model.Message
-
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatPage(

@@ -34,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,6 +55,8 @@ import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBUser
 import br.edu.ifpe.achadosperdidosifpe.model.User
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
