@@ -43,6 +43,7 @@ import java.util.Locale
 import java.util.UUID
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
+import androidx.compose.foundation.BorderStroke
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LostItemPage(
@@ -156,33 +157,39 @@ fun LostItemPage(
                 Text("Foto de Referência (opcional)", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
             }
 
-            Box(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
-                    .border(1.5.dp, Color(0xFFBBBBBB), RoundedCornerShape(10.dp))
+                    .height(185.dp)
                     .clickable { if (!isSalvando) showPhotoOptions = true },
-                contentAlignment = Alignment.Center
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.5.dp, Color(0xFFBBBBBB)),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                if (fotoUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = fotoUrl,
-                        contentDescription = "Foto selecionada",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            tint = Color.LightGray,
-                            modifier = Modifier.size(36.dp)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (fotoUrl != null) {
+                        coil.compose.AsyncImage(
+                            model = fotoUrl,
+                            contentDescription = "Foto selecionada",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-                        Text("Clique para adicionar foto do item", fontSize = 13.sp, color = Color.Gray)
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = Color.LightGray,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Text("Clique para adicionar foto do item", fontSize = 13.sp, color = Color.Gray)
+                        }
                     }
                 }
             }
@@ -349,7 +356,7 @@ fun LostItemPage(
                             data = parsedDate
                         )
 
-                        viewModel.addItemComFoto(item, fotoUrl) { sucesso ->
+                        viewModel.addItemComFoto(context, item, fotoUrl) { sucesso ->
                             isSalvando = false
                             if (sucesso) {
                                 Toast.makeText(context, "Item perdido registrado!", Toast.LENGTH_SHORT).show()

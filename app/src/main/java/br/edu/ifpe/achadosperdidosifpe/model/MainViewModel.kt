@@ -72,28 +72,41 @@ class MainViewModel(
         _items.remove(item.id)
     }
 
-    fun addItemComFoto(item: Item, localPath: String?, onComplete: (Boolean) -> Unit) {
+    fun addItemComFoto(
+        context: android.content.Context,
+        item: Item,
+        localPath: String?,
+        onComplete: (Boolean) -> Unit
+    ) {
         if (localPath.isNullOrEmpty()) {
             db.add(item.toFBItem())
             onComplete(true)
             return
         }
-
         try {
-            val file = File(localPath)
-            if (!file.exists()) {
+            val bytes = if (localPath.startsWith("content://") || localPath.startsWith("file://")) {
+                val uri = android.net.Uri.parse(localPath)
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } else {
+                val file = File(localPath)
+                if (!file.exists()) {
+                    onComplete(false)
+                    return
+                }
+                file.readBytes()
+            }
+
+            if (bytes == null) {
                 onComplete(false)
                 return
             }
 
-            val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             val out = ByteArrayOutputStream()
-
             bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, out)
-            val bytes = out.toByteArray()
+            val compressedBytes = out.toByteArray()
 
-            val base64String = Base64.encodeToString(bytes, Base64.NO_WRAP)
-
+            val base64String = Base64.encodeToString(compressedBytes, Base64.NO_WRAP)
             val dataUri = "data:image/jpeg;base64,$base64String"
 
             val itemComFotoBase64 = item.copy(fotoUrl = dataUri)

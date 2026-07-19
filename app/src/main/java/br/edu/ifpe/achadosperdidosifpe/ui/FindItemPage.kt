@@ -4,6 +4,7 @@ import android.widget.Toast
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -175,37 +176,52 @@ fun FindItemPage(
                     tint = IfpeGreenMid,
                     modifier = Modifier.size(15.dp)
                 )
-                Text("Foto do Item (opcional)", fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                Text(
+                    "Foto do Item (opcional)",
+                    fontSize = 13.sp,
+                    color = Color.DarkGray,
+                    fontWeight = FontWeight.Medium
+                )
             }
 
-            Box(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
-                    .border(1.5.dp, Color(0xFFBBBBBB), RoundedCornerShape(10.dp))
+                    .height(185.dp)
                     .clickable { if (!isSalvando) showPhotoOptions = true },
-                contentAlignment = Alignment.Center
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.5.dp, Color(0xFFBBBBBB)),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                if (fotoUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = fotoUrl,
-                        contentDescription = "Foto selecionada",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            tint = Color.LightGray,
-                            modifier = Modifier.size(36.dp)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (fotoUrl != null) {
+                        coil.compose.AsyncImage(
+                            model = fotoUrl,
+                            contentDescription = "Foto selecionada",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-                        Text("Clique para adicionar foto", fontSize = 13.sp, color = Color.Gray)
-                        Text("Sem detalhes muito específicos", fontSize = 11.sp, color = Color.LightGray)
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = Color.LightGray,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Text("Clique para adicionar foto", fontSize = 13.sp, color = Color.Gray)
+                            Text(
+                                "Sem detalhes muito específicos",
+                                fontSize = 11.sp,
+                                color = Color.LightGray
+                            )
+                        }
                     }
                 }
             }
@@ -373,7 +389,7 @@ fun FindItemPage(
                             data = parsedDate
                         )
 
-                        viewModel.addItemComFoto(item, fotoUrl) { sucesso ->
+                        viewModel.addItemComFoto(context, item,fotoUrl) { sucesso ->
                             isSalvando = false
                             if (sucesso) {
                                 Toast.makeText(context, "Item encontrado registrado!", Toast.LENGTH_SHORT).show()

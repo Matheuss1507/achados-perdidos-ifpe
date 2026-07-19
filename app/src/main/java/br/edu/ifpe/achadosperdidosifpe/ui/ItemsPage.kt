@@ -171,6 +171,19 @@ fun ItemsPage(
 
 @Composable
 fun ItemsPageCard(item: Item, onClick: () -> Unit) {
+
+    val imageModel = remember(item.fotoUrl) {
+        if (item.fotoUrl?.startsWith("data:image") == true) {
+            try {
+                val base64String = item.fotoUrl.substringAfter(",")
+                android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+            } catch (e: Exception) {
+                item.fotoUrl
+            }
+        } else {
+            item.fotoUrl
+        }
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -192,10 +205,9 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                // CORREÇÃO: Renderiza a foto dinamicamente se ela existir
                 if (!item.fotoUrl.isNullOrEmpty()) {
                     coil.compose.AsyncImage(
-                        model = item.fotoUrl,
+                        model = imageModel,
                         contentDescription = "Foto de ${item.nome}",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

@@ -35,6 +35,18 @@ fun ItemDetailsPage(
     onBackClick: () -> Unit = {},
     onChatClick: () -> Unit = {}
 ) {
+    val imageModel = remember(item?.fotoUrl) {
+        if (item?.fotoUrl?.startsWith("data:image") == true) {
+            try {
+                val base64String = item.fotoUrl.substringAfter(",")
+                android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+            } catch (e: Exception) {
+                item.fotoUrl
+            }
+        } else {
+            item?.fotoUrl
+        }
+    }
     val scrollState = rememberScrollState()
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR")) }
@@ -87,13 +99,11 @@ fun ItemDetailsPage(
             val tagTextColor = if (item.tipo == Tipo.PERDIDO) Color(0xFFC5221F) else Color(0xFF137333)
             val tagText = if (item.tipo == Tipo.PERDIDO) "Item Perdido" else "Item Encontrado"
             val tagIcon = if (item.tipo == Tipo.PERDIDO) Icons.Default.Warning else Icons.Default.CheckCircle
-
             val (statusBg, statusText, statusLabel) = when (item.status) {
                 Status.NO_SETOR -> Triple(Color(0xFFFEF7E0), Color(0xFFB06000), "No Setor Oficial")
                 Status.PERDIDO -> Triple(Color(0xFFF5F5F5), Color(0xFF5F6368), "Em Busca de Dono")
                 Status.RESOLVIDO -> Triple(Color(0xFFE8F0FE), Color(0xFF1967D2), "Resolvido / Entregue")
             }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -103,27 +113,32 @@ fun ItemDetailsPage(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Box(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
-                        .background(Color(0xFFF2F2F2), shape = RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
+                        .height(260.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF2F2F2))
                 ) {
-                    if (!item.fotoUrl.isNullOrEmpty()) {
-                        coil.compose.AsyncImage(
-                            model = item.fotoUrl,
-                            contentDescription = "Foto de ${item.nome}",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Inbox,
-                            contentDescription = "Sem Imagem",
-                            modifier = Modifier.size(72.dp),
-                            tint = Color.LightGray
-                        )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!item.fotoUrl.isNullOrEmpty()) {
+                            coil.compose.AsyncImage(
+                                model = imageModel,
+                                contentDescription = "Foto de ${item.nome}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Inbox,
+                                contentDescription = "Sem Imagem",
+                                modifier = Modifier.size(72.dp),
+                                tint = Color.LightGray
+                            )
+                        }
                     }
                 }
 
