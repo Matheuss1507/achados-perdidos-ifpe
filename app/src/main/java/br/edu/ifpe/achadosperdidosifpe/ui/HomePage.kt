@@ -6,12 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Search
@@ -24,18 +25,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.R
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
-import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import java.util.Date
-
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,216 +44,308 @@ fun HomePage(
     onSeeAllClick: () -> Unit = {}
 ) {
     var searchText by remember { mutableStateOf("") }
+    var currentFilter by remember { mutableStateOf(ItemFilter()) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+
+    val filteredItems = viewModel.items.filter { item ->
+        val matchesSearch = item.nome.contains(searchText, ignoreCase = true) ||
+                item.categoria.contains(searchText, ignoreCase = true)
+        val matchesCategoria = currentFilter.categoria == null || item.categoria.equals(currentFilter.categoria, ignoreCase = true)
+        val matchesTipo = currentFilter.tipo == null || item.tipo == currentFilter.tipo
+        val matchesStatus = currentFilter.status == null || item.status == currentFilter.status
+        val matchesCor = currentFilter.cor == null || item.corPrincipal?.contains(currentFilter.cor!!, ignoreCase = true) == true
+        matchesSearch && matchesCategoria && matchesTipo && matchesStatus && matchesCor
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF9F9F9))
+            .background(Color(0xFFF8FAFC))
             .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // --- HERO HEADER INSTITUCIONAL ---
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = IfpeGreen,
+                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                )
+                .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Image(
                         painter = painterResource(id = R.drawable.ifpe_logomarca),
                         contentDescription = "Logo IFPE Pernambuco",
-                        modifier = Modifier.height(60.dp),
+                        modifier = Modifier.height(48.dp)
                     )
+                    IconButton(
+                        onClick = { },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsNone,
+                            contentDescription = "Notificações",
+                            tint = Color.White
+                        )
+                    }
                 }
-            }
-            Icon(
-                imageVector = Icons.Default.NotificationsNone,
-                contentDescription = "Notificações",
-                modifier = Modifier.size(28.dp),
-                tint = Color.Black
-            )
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                placeholder = {
-                    Text("Buscar item: carteira, fone...", fontSize = 13.sp, color = Color.Gray)
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray)
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF00913F),
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Início & Painel",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.8f),
+                    letterSpacing = 1.sp
                 )
-            )
+                Text(
+                    text = "Achados e Perdidos IFPE",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Conectando o campus para devolver o que é importante.",
+                    fontSize = 13.sp,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
 
-            OutlinedButton(
-                onClick = { },
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color.LightGray),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 14.dp),
-                modifier = Modifier.height(56.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Tune,
-                        contentDescription = "Filtros",
-                        tint = Color.DarkGray,
-                        modifier = Modifier.size(20.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Busca Rápida na Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        placeholder = {
+                            Text("Buscar por fone, chave, mochila...", fontSize = 13.sp, color = Color(0xFF6B7280))
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = IfpeGreen)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        )
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Filtros", color = Color.DarkGray, fontSize = 14.sp)
+
+                    OutlinedButton(
+                        onClick = { showFilterSheet = true },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, if (currentFilter.isActive) Color.White else Color.Transparent),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (currentFilter.isActive) Color(0xFFE8F5E9) else Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        modifier = Modifier.height(56.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = "Filtros",
+                                tint = IfpeGreen,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            if (currentFilter.isActive) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Ativo",
+                                    color = IfpeGreen,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        // --- CONTEÚDO PRINCIPAL DA HOME ---
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Card(
-                onClick = onLostItem,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(130.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.5.dp, Color(0xFF00913F))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // Ações Rápidas
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Ações Rápidas",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFF1E293B)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(
+                    Card(
+                        onClick = onLostItem,
                         modifier = Modifier
-                            .size(36.dp)
-                            .background(Color(0xFFE8F5E9), shape = CircleShape),
-                        contentAlignment = Alignment.Center
+                            .weight(1f)
+                            .height(120.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                        border = BorderStroke(1.dp, Color(0xFFFCA5A5))
                     ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(Color(0xFFFEE2E2), shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                                    contentDescription = "Perdi um item",
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Perdi um item", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF991B1B))
+                            Text("Cadastre e procure", fontSize = 11.sp, color = Color(0xFFB91C1C))
+                        }
+                    }
+
+                    Card(
+                        onClick = onFindItem,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(120.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                        border = BorderStroke(1.dp, Color(0xFF86EFAC))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(Color(0xFFDCFCE7), shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = "Encontrei um item",
+                                    tint = IfpeGreen,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Encontrei um item", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF166534))
+                            Text("Ajude a devolver", fontSize = 11.sp, color = Color(0xFF15803D))
+                        }
+                    }
+                }
+            }
+
+            // Atividades Recentes
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Recém Registrados",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        color = Color(0xFF1E293B)
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onSeeAllClick() }
+                    ) {
+                        Text(
+                            text = "Ver todos",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = IfpeGreen
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
-                            contentDescription = "Perdi um item",
-                            tint = Color(0xFF00913F),
-                            modifier = Modifier.size(22.dp)
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "Ver todos",
+                            tint = IfpeGreen,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Perdi um item",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Registre aqui o que perdeu",
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
                 }
-            }
 
-            Card(
-                onClick = onFindItem,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(130.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.5.dp, Color(0xFF00913F))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Color(0xFFE8F5E9), shape = CircleShape),
-                        contentAlignment = Alignment.Center
+                if (filteredItems.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Encontrei um item",
-                            tint = Color(0xFF00913F),
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Nenhum item recente encontrado.",
+                                color = Color(0xFF64748B),
+                                fontSize = 14.sp
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Encontrei um item",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Ajude alguém a encontrar",
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
+                } else {
+                    filteredItems.take(3).forEach { item ->
+                        ItemCard(item = item, onClick = { onItemClick(item.id) })
+                    }
                 }
             }
         }
+    }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Últimos itens",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.Black
-            )
-            val ifpeGreenText = Color(0xFF00642F)
-            Text(
-                text = "Ver todos",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = ifpeGreenText,
-                modifier = Modifier.clickable { onSeeAllClick() }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        viewModel.items.take(2).forEach { item ->
-            ItemCard(item = item, onClick = { onItemClick(item.id) })
-            Spacer(modifier = Modifier.height(10.dp))
-        }
+    if (showFilterSheet) {
+        FilterBottomSheet(
+            currentFilter = currentFilter,
+            onDismissRequest = { showFilterSheet = false },
+            onApplyFilter = { newFilter -> currentFilter = newFilter }
+        )
     }
 }
 
 @Composable
 fun ItemCard(item: Item, onClick: () -> Unit) {
-
     val imageModel = remember(item.fotoUrl) {
         if (item.fotoUrl?.startsWith("data:image") == true) {
             try {
@@ -270,14 +358,15 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
             item.fotoUrl
         }
     }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
+            .height(92.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Row(
             modifier = Modifier
@@ -287,8 +376,8 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(65.dp)
-                    .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
+                    .size(68.dp)
+                    .background(Color(0xFFF1F5F9), shape = RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (!item.fotoUrl.isNullOrEmpty()) {
@@ -302,14 +391,12 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Item sem foto",
-                        tint = Color.Gray,
+                        tint = Color(0xFF94A3B8),
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -322,8 +409,8 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val isPerdido = item.tipo == Tipo.PERDIDO
-                    val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
-                    val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
+                    val tagBgColor = if (isPerdido) Color(0xFFFEE2E2) else Color(0xFFDCFCE7)
+                    val tagTextColor = if (isPerdido) Color(0xFF991B1B) else Color(0xFF166534)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
 
                     Surface(
@@ -339,37 +426,33 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                         )
                     }
                 }
-
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = Color.Black
+                    color = Color(0xFF0F172A)
                 )
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ícone de localização",
-                        tint = Color.LightGray,
+                        contentDescription = "Localização",
+                        tint = Color(0xFF94A3B8),
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = item.localizacao,
-                        color = Color.Gray,
+                        color = Color(0xFF64748B),
                         fontSize = 12.sp,
                         maxLines = 1
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(8.dp))
-
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",
-                tint = Color.LightGray,
+                tint = Color(0xFF94A3B8),
                 modifier = Modifier.size(24.dp)
             )
         }

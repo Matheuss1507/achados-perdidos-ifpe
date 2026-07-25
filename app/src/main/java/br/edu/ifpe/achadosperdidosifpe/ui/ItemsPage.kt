@@ -9,23 +9,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
-import androidx.compose.ui.layout.ContentScale
-
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 
 private val GreenFilter = Color(0xFF00913F)
 
@@ -39,6 +39,8 @@ fun ItemsPage(
 ) {
     var searchText by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
+    var currentFilter by remember { mutableStateOf(ItemFilter()) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
     val itensFiltrados = viewModel.items.filter { item ->
@@ -49,96 +51,150 @@ fun ItemsPage(
             2 -> item.tipo == Tipo.ENCONTRADO
             else -> true
         }
-        matchesSearch && matchesTab
+        val matchesCategoria = currentFilter.categoria == null || item.categoria.equals(currentFilter.categoria, ignoreCase = true)
+        val matchesTipo = currentFilter.tipo == null || item.tipo == currentFilter.tipo
+        val matchesStatus = currentFilter.status == null || item.status == currentFilter.status
+        val matchesCor = currentFilter.cor == null || item.corPrincipal?.contains(currentFilter.cor!!, ignoreCase = true) == true
+        matchesSearch && matchesTab && matchesCategoria && matchesTipo && matchesStatus && matchesCor
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF9F9F9))
+            .background(Color(0xFFF8FAFC))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // --- HEADER TIPO CATÁLOGO DE ITENS ---
+        Surface(
+            color = Color.White,
+            shadowElevation = 2.dp
         ) {
-            Text(
-                text = "Todos os Itens",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { }) {
-                Icon(
-                    imageVector = Icons.Default.Tune,
-                    contentDescription = "Filtrar Itens",
-                    tint = GreenFilter
-                )
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Explorar Itens",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = "${itensFiltrados.size} item(ns) encontrado(s)",
+                            fontSize = 12.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    FilledTonalIconButton(
+                        onClick = { showFilterSheet = true },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = if (currentFilter.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9)
+                        )
+                    ) {
+                        BadgedBox(
+                            badge = {
+                                if (currentFilter.isActive) {
+                                    Badge(containerColor = GreenFilter)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = "Filtrar Itens",
+                                tint = if (currentFilter.isActive) GreenFilter else Color(0xFF475569)
+                            )
+                        }
+                    }
+                }
+
+                // Campo de Busca do Catálogo
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        placeholder = {
+                            Text("Filtrar por nome ou categoria...", fontSize = 13.sp, color = Color(0xFF94A3B8))
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = GreenFilter)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = GreenFilter,
+                            unfocusedBorderColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = Color(0xFFF8FAFC),
+                            unfocusedContainerColor = Color(0xFFF8FAFC)
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Abas de Filtro
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.White,
+                    contentColor = GreenFilter,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.SecondaryIndicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = GreenFilter,
+                            height = 3.dp
+                        )
+                    }
+                ) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = {
+                            Text(
+                                text = "Todos",
+                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        },
+                        selectedContentColor = GreenFilter,
+                        unselectedContentColor = Color(0xFF64748B)
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = {
+                            Text(
+                                text = "Perdidos",
+                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        },
+                        selectedContentColor = GreenFilter,
+                        unselectedContentColor = Color(0xFF64748B)
+                    )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = {
+                            Text(
+                                text = "Encontrados",
+                                fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        },
+                        selectedContentColor = GreenFilter,
+                        unselectedContentColor = Color(0xFF64748B)
+                    )
+                }
             }
         }
 
-        HorizontalDivider(color = Color(0xFFEEEEEE))
-
-        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                placeholder = {
-                    Text("Buscar por nome ou categoria...", fontSize = 13.sp, color = Color.Gray)
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = GreenFilter,
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-        }
-
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = Color.White,
-            contentColor = GreenFilter,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    color = GreenFilter
-                )
-            }
-        ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Todos", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
-                selectedContentColor = GreenFilter,
-                unselectedContentColor = Color.Gray
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text("Perdidos", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
-                selectedContentColor = GreenFilter,
-                unselectedContentColor = Color.Gray
-            )
-            Tab(
-                selected = selectedTab == 2,
-                onClick = { selectedTab = 2 },
-                text = { Text("Encontrados", fontWeight = FontWeight.Medium, fontSize = 14.sp) },
-                selectedContentColor = GreenFilter,
-                unselectedContentColor = Color.Gray
-            )
-        }
-
+        // --- LISTA DO CATÁLOGO ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -154,11 +210,20 @@ fun ItemsPage(
                         .padding(top = 40.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Nenhum item corresponde à busca.",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Nenhum item encontrado",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF334155),
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Tente alterar os filtros ou o termo de busca.",
+                            color = Color(0xFF64748B),
+                            fontSize = 13.sp
+                        )
+                    }
                 }
             } else {
                 itensFiltrados.forEach { item ->
@@ -167,11 +232,18 @@ fun ItemsPage(
             }
         }
     }
+
+    if (showFilterSheet) {
+        FilterBottomSheet(
+            currentFilter = currentFilter,
+            onDismissRequest = { showFilterSheet = false },
+            onApplyFilter = { newFilter -> currentFilter = newFilter }
+        )
+    }
 }
 
 @Composable
 fun ItemsPageCard(item: Item, onClick: () -> Unit) {
-
     val imageModel = remember(item.fotoUrl) {
         if (item.fotoUrl?.startsWith("data:image") == true) {
             try {
@@ -184,14 +256,15 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
             item.fotoUrl
         }
     }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
+            .height(94.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Row(
             modifier = Modifier
@@ -201,8 +274,8 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(65.dp)
-                    .background(Color(0xFFE0E0E0), shape = RoundedCornerShape(8.dp)),
+                    .size(72.dp)
+                    .background(Color(0xFFF1F5F9), shape = RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (!item.fotoUrl.isNullOrEmpty()) {
@@ -216,7 +289,7 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Item sem foto",
-                        tint = Color.Gray,
+                        tint = Color(0xFF94A3B8),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -234,9 +307,10 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val isPerdido = item.tipo == Tipo.PERDIDO
-                    val tagBgColor = if (isPerdido) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
-                    val tagTextColor = if (isPerdido) Color(0xFFC5221F) else Color(0xFF137333)
+                    val tagBgColor = if (isPerdido) Color(0xFFFEE2E2) else Color(0xFFDCFCE7)
+                    val tagTextColor = if (isPerdido) Color(0xFF991B1B) else Color(0xFF166534)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
+
                     Surface(
                         color = tagBgColor,
                         shape = RoundedCornerShape(4.dp)
@@ -249,24 +323,40 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+
+                    // Tag adicional de Categoria para o Catálogo
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = item.categoria,
+                            color = Color(0xFF475569),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
+
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = Color.Black
+                    color = Color(0xFF0F172A)
                 )
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ícone de localização",
-                        tint = Color.LightGray,
+                        contentDescription = "Localização",
+                        tint = Color(0xFF94A3B8),
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = item.localizacao,
-                        color = Color.Gray,
+                        color = Color(0xFF64748B),
                         fontSize = 12.sp,
                         maxLines = 1
                     )
@@ -276,7 +366,7 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",
-                tint = Color.LightGray,
+                tint = Color(0xFF94A3B8),
                 modifier = Modifier.size(24.dp)
             )
         }
