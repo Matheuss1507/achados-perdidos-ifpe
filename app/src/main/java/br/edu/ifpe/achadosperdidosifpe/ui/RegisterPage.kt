@@ -1,15 +1,9 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,23 +17,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,10 +32,9 @@ import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.db.fb.DatabaseProvider
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBUser
 import br.edu.ifpe.achadosperdidosifpe.model.User
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
-import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +52,12 @@ fun RegisterPage(
     var senhaVisivel by remember { mutableStateOf(false) }
     var confirmarSenhaVisivel by remember { mutableStateOf(false) }
 
+    var nomeError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var cursoError by remember { mutableStateOf<String?>(null) }
+    var senhaError by remember { mutableStateOf<String?>(null) }
+    var confirmarSenhaError by remember { mutableStateOf<String?>(null) }
+
     val cursos = listOf(
         "Análise e Desenvolvimento de Sistemas",
         "Engenharia de Computação",
@@ -82,15 +66,65 @@ fun RegisterPage(
         "Contabilidade",
         "Outro"
     )
-
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    var isLoading by remember { mutableStateOf(false) }
+
+    fun validarFormulario(): Boolean {
+        var isValid = true
+
+        if (nomeCompleto.isBlank()) {
+            nomeError = "Digite seu nome completo"
+            isValid = false
+        } else {
+            nomeError = null
+        }
+
+        if (email.isBlank()) {
+            emailError = "E-mail é obrigatório"
+            isValid = false
+        } else if (!Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
+            emailError = "Informe um e-mail válido"
+            isValid = false
+        } else {
+            emailError = null
+        }
+
+        if (cursoSelecionado.isBlank()) {
+            cursoError = "Selecione seu curso/setor"
+            isValid = false
+        } else {
+            cursoError = null
+        }
+
+        if (senha.isBlank()) {
+            senhaError = "Senha é obrigatória"
+            isValid = false
+        } else if (senha.length < 6) {
+            senhaError = "A senha deve conter no mínimo 6 caracteres"
+            isValid = false
+        } else {
+            senhaError = null
+        }
+
+        if (confirmarSenha.isBlank()) {
+            confirmarSenhaError = "Confirme a senha"
+            isValid = false
+        } else if (senha != confirmarSenha) {
+            confirmarSenhaError = "As senhas não coincidem"
+            isValid = false
+        } else {
+            confirmarSenhaError = null
+        }
+
+        return isValid
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF9F9F9))
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -113,7 +147,6 @@ fun RegisterPage(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
-
         HorizontalDivider(color = Color(0xFFEEEEEE))
 
         Column(
@@ -122,18 +155,20 @@ fun RegisterPage(
                 .weight(1f)
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-
-
-            FormField(label = "Nome Completo") {
+            FormField(label = "Nome Completo *") {
                 OutlinedTextField(
                     value = nomeCompleto,
-                    onValueChange = { nomeCompleto = it },
+                    onValueChange = {
+                        nomeCompleto = it
+                        if (nomeError != null) nomeError = null
+                    },
                     placeholder = { Text("João da Silva", color = Color.LightGray) },
+                    isError = nomeError != null,
+                    supportingText = { nomeError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     leadingIcon = {
-                        Icon(Icons.Default.Person, contentDescription = null,
-                            tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
@@ -142,14 +177,18 @@ fun RegisterPage(
                 )
             }
 
-            FormField(label = "E-mail Institucional") {
+            FormField(label = "E-mail Institucional *") {
                 OutlinedTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        if (emailError != null) emailError = null
+                    },
                     placeholder = { Text("seu.email@estudante.ifpe.edu.br", color = Color.LightGray) },
+                    isError = emailError != null,
+                    supportingText = { emailError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     leadingIcon = {
-                        Icon(Icons.Default.Email, contentDescription = null,
-                            tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Email, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
@@ -159,14 +198,13 @@ fun RegisterPage(
                 )
             }
 
-            FormField(label = "Matrícula") {
+            FormField(label = "Matrícula (opcional)") {
                 OutlinedTextField(
                     value = matricula,
                     onValueChange = { matricula = it },
                     placeholder = { Text("202X0000", color = Color.LightGray) },
                     leadingIcon = {
-                        Icon(Icons.Default.Badge, contentDescription = null,
-                            tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Badge, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
@@ -175,8 +213,7 @@ fun RegisterPage(
                 )
             }
 
-            // Curso/Setor
-            FormField(label = "Curso/Setor") {
+            FormField(label = "Curso/Setor *") {
                 ExposedDropdownMenuBox(
                     expanded = cursoExpanded,
                     onExpandedChange = { cursoExpanded = it }
@@ -186,9 +223,10 @@ fun RegisterPage(
                         onValueChange = {},
                         readOnly = true,
                         placeholder = { Text("Selecione...", color = Color.LightGray) },
+                        isError = cursoError != null,
+                        supportingText = { cursoError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                         leadingIcon = {
-                            Icon(Icons.Default.School, contentDescription = null,
-                                tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.School, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                         },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = cursoExpanded)
@@ -209,6 +247,7 @@ fun RegisterPage(
                                 onClick = {
                                     cursoSelecionado = curso
                                     cursoExpanded = false
+                                    cursoError = null
                                 }
                             )
                         }
@@ -216,15 +255,18 @@ fun RegisterPage(
                 }
             }
 
-            // Senha
-            FormField(label = "Senha") {
+            FormField(label = "Senha *") {
                 OutlinedTextField(
                     value = senha,
-                    onValueChange = { senha = it },
+                    onValueChange = {
+                        senha = it
+                        if (senhaError != null) senhaError = null
+                    },
                     placeholder = { Text("Mínimo 6 caracteres", color = Color.LightGray) },
+                    isError = senhaError != null,
+                    supportingText = { senhaError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = null,
-                            tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                     },
                     trailingIcon = {
                         IconButton(onClick = { senhaVisivel = !senhaVisivel }) {
@@ -245,15 +287,18 @@ fun RegisterPage(
                 )
             }
 
-            // Confirmar Senha
-            FormField(label = "Confirmar Senha") {
+            FormField(label = "Confirmar Senha *") {
                 OutlinedTextField(
                     value = confirmarSenha,
-                    onValueChange = { confirmarSenha = it },
+                    onValueChange = {
+                        confirmarSenha = it
+                        if (confirmarSenhaError != null) confirmarSenhaError = null
+                    },
                     placeholder = { Text("Digite a senha novamente", color = Color.LightGray) },
+                    isError = confirmarSenhaError != null,
+                    supportingText = { confirmarSenhaError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = null,
-                            tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                     },
                     trailingIcon = {
                         IconButton(onClick = { confirmarSenhaVisivel = !confirmarSenhaVisivel }) {
@@ -274,27 +319,14 @@ fun RegisterPage(
                 )
             }
 
-            val context = LocalContext.current
-            var isLoading by remember { mutableStateOf(false) }
-
+            Spacer(modifier = Modifier.height(10.dp))
 
             Button(
                 onClick = {
-                    if (nomeCompleto.isBlank() || email.isBlank() || senha.isBlank() || cursoSelecionado.isBlank()) {
-                        Toast.makeText(context, "Preencha todos os campos obrigatórios", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    if (senha.length < 6) {
-                        Toast.makeText(context, "A senha deve ter no mínimo 6 caracteres", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    if (senha != confirmarSenha) {
-                        Toast.makeText(context, "As senhas não coincidem", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
+                    if (!validarFormulario()) return@Button
 
                     isLoading = true
-                    Firebase.auth.createUserWithEmailAndPassword(email, senha)
+                    Firebase.auth.createUserWithEmailAndPassword(email.trim(), senha)
                         .addOnCompleteListener { task ->
                             isLoading = false
                             if (task.isSuccessful) {
@@ -302,7 +334,7 @@ fun RegisterPage(
                                 val novoUsuario = User(
                                     id = uid,
                                     nome = nomeCompleto,
-                                    email = email,
+                                    email = email.trim(),
                                     matricula = matricula.ifBlank { null },
                                     curso = cursoSelecionado,
                                     tipo = "aluno"
@@ -326,11 +358,15 @@ fun RegisterPage(
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
             ) {
-                Text(
-                    text = if (isLoading) "Criando conta..." else "Criar Conta",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
+                } else {
+                    Text(
+                        text = "Criar Conta",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

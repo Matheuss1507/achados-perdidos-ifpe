@@ -1,5 +1,11 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,22 +23,32 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import br.edu.ifpe.achadosperdidosifpe.model.Chat
 import br.edu.ifpe.achadosperdidosifpe.model.Message
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
+import com.google.android.gms.location.LocationServices
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatPage(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     var idChatSelecionado by remember { mutableStateOf<String?>(null) }
     var mensagemAtual by remember { mutableStateOf("") }
     val estadoRolagem = rememberScrollState()
+
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     val listaChats = remember {
         listOf(
@@ -41,7 +57,7 @@ fun ChatPage(
                 nome = "João Silva",
                 papel = "Estudante - Informática",
                 tituloItem = "Celular Samsung Galaxy",
-                ultimaMensagem = "Perfeito! é esse mesmo. Deixei no Setor...",
+                ultimaMensagem = "Perfeito! É esse mesmo. Deixei no Setor...",
                 horario = "14:37"
             ),
             Chat(
@@ -56,22 +72,66 @@ fun ChatPage(
     }
 
     val mapaMensagens = remember {
-        mapOf(
-            "1" to listOf(
+        mutableStateMapOf(
+            "1" to mutableStateListOf(
                 Message("Olá! Vi que você encontrou meu celular. Muito obrigado!", "14:32", false),
                 Message("Oi! Sim, encontrei perto da cantina. Para confirmar que é seu, pode responder: Qual é o papel de parede do celular?", "14:35", true),
                 Message("É uma foto da minha família na praia!", "14:36", false),
                 Message("Perfeito! É esse mesmo. Deixei no Setor de Achados e Perdidos. Fica no Bloco A.", "14:37", true)
             ),
-            "2" to listOf(
+            "2" to mutableStateListOf(
                 Message("Olá! Você encontrou minha garrafa?", "Ontem", false),
                 Message("Oi, Maria! Encontrei sim, estava na Quadra Poliesportiva próximo à arquibancada.", "Ontem", true),
-                Message("Nossa, que alívio! Posso passar para pegar amanhã ?", "Ontem", false)
+                Message("Nossa, que alívio! Posso passar para pegar amanhã?", "Ontem", false)
             )
         )
     }
 
     val chatAtual = listaChats.find { it.id == idChatSelecionado }
+
+    @SuppressLint("MissingPermission")
+    fun capturarEEnviarLocalizacao() {
+        if (chatAtual == null) return
+
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                if (location != null) {
+                    val lat = location.latitude
+                    val lng = location.longitude
+                    val horaAtual = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
+                    val textoLocalizacao = "📍 Localização compartilhada:\nhttps://maps.google.com/?q=$lat,$lng"
+
+                    mapaMensagens[chatAtual.id]?.add(
+                        Message(textoLocalizacao, horaAtual, enviadoPorMim = true)
+                    )
+                    Toast.makeText(context, "Localização enviada com sucesso!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Não foi possível obter a localização. Verifique se o GPS está ativo.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(
+                    context,
+                    "Falha ao capturar localização: ${exception.localizedMessage}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            capturarEEnviarLocalizacao()
+        } else {
+            Toast.makeText(context, "Permissão de localização negada.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
@@ -190,7 +250,19 @@ fun ChatPage(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp),
+                            .padding(top = 16.dp)
+                            .clickable {
+                                val permissionGranted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACCESS_FINE_LOCATION
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (permissionGranted) {
+                                    capturarEEnviarLocalizacao()
+                                } else {
+                                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                }
+                            },
                         border = BorderStroke(1.dp, Color(0xFFDDDDDD)),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         shape = RoundedCornerShape(12.dp)
@@ -250,7 +322,15 @@ fun ChatPage(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     FilledIconButton(
-                        onClick = { if (mensagemAtual.isNotBlank()) mensagemAtual = "" },
+                        onClick = {
+                            if (mensagemAtual.isNotBlank()) {
+                                val horaAtual = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                                mapaMensagens[chatAtual.id]?.add(
+                                    Message(mensagemAtual, horaAtual, enviadoPorMim = true)
+                                )
+                                mensagemAtual = ""
+                            }
+                        },
                         modifier = Modifier.size(56.dp),
                         shape = CircleShape,
                         colors = IconButtonDefaults.filledIconButtonColors(containerColor = IfpeGreenMid)
