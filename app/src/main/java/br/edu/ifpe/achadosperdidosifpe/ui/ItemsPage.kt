@@ -1,5 +1,6 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,23 +10,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TabPosition
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
+import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import coil.compose.SubcomposeAsyncImage
 
 private val GreenFilter = Color(0xFF00913F)
 
@@ -37,10 +40,17 @@ fun ItemsPage(
     onBackClick: () -> Unit = {},
     onItemClick: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val currentUserId = viewModel.user?.id
+
     var searchText by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
     var currentFilter by remember { mutableStateOf(ItemFilter()) }
     var showFilterSheet by remember { mutableStateOf(false) }
+
+    var itemParaDeletar by remember { mutableStateOf<Item?>(null) }
+    var itemParaEditar by remember { mutableStateOf<Item?>(null) }
+
     val scrollState = rememberScrollState()
 
     val itensFiltrados = viewModel.items.filter { item ->
@@ -49,12 +59,14 @@ fun ItemsPage(
         val matchesTab = when (selectedTab) {
             1 -> item.tipo == Tipo.PERDIDO
             2 -> item.tipo == Tipo.ENCONTRADO
+            3 -> item.usuarioId == currentUserId
             else -> true
         }
         val matchesCategoria = currentFilter.categoria == null || item.categoria.equals(currentFilter.categoria, ignoreCase = true)
         val matchesTipo = currentFilter.tipo == null || item.tipo == currentFilter.tipo
         val matchesStatus = currentFilter.status == null || item.status == currentFilter.status
         val matchesCor = currentFilter.cor == null || item.corPrincipal?.contains(currentFilter.cor!!, ignoreCase = true) == true
+
         matchesSearch && matchesTab && matchesCategoria && matchesTipo && matchesStatus && matchesCor
     }
 
@@ -88,9 +100,7 @@ fun ItemsPage(
                             color = Color(0xFF64748B)
                         )
                     }
-
                     Spacer(modifier = Modifier.weight(1f))
-
                     FilledTonalIconButton(
                         onClick = { showFilterSheet = true },
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
@@ -139,54 +149,46 @@ fun ItemsPage(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Abas de Filtro
-                TabRow(
+                ScrollableTabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = Color.White,
                     contentColor = GreenFilter,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = GreenFilter,
-                            height = 3.dp
-                        )
+                    edgePadding = 16.dp,
+                    indicator = { tabPositions: List<TabPosition> ->
+                        if (selectedTab < tabPositions.size) {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                color = GreenFilter,
+                                height = 3.dp
+                            )
+                        }
                     }
                 ) {
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = {
-                            Text(
-                                text = "Todos",
-                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
-                        },
+                        text = { Text("Todos", fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
                         selectedContentColor = GreenFilter,
                         unselectedContentColor = Color(0xFF64748B)
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = {
-                            Text(
-                                text = "Perdidos",
-                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
-                        },
+                        text = { Text("Perdidos", fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
                         selectedContentColor = GreenFilter,
                         unselectedContentColor = Color(0xFF64748B)
                     )
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
-                        text = {
-                            Text(
-                                text = "Encontrados",
-                                fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
-                        },
+                        text = { Text("Encontrados", fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
+                        selectedContentColor = GreenFilter,
+                        unselectedContentColor = Color(0xFF64748B)
+                    )
+                    Tab(
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 },
+                        text = { Text("Meus Itens", fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
                         selectedContentColor = GreenFilter,
                         unselectedContentColor = Color(0xFF64748B)
                     )
@@ -219,7 +221,7 @@ fun ItemsPage(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Tente alterar os filtros ou o termo de busca.",
+                            text = "Tente alterar os filtros ou a aba selecionada.",
                             color = Color(0xFF64748B),
                             fontSize = 13.sp
                         )
@@ -227,7 +229,13 @@ fun ItemsPage(
                 }
             } else {
                 itensFiltrados.forEach { item ->
-                    ItemsPageCard(item = item, onClick = { onItemClick(item.id) })
+                    ItemsPageCard(
+                        item = item,
+                        showEditDelete = (selectedTab == 3),
+                        onClick = { onItemClick(item.id) },
+                        onEditClick = { itemParaEditar = item },
+                        onDeleteClick = { itemParaDeletar = item }
+                    )
                 }
             }
         }
@@ -240,10 +248,51 @@ fun ItemsPage(
             onApplyFilter = { newFilter -> currentFilter = newFilter }
         )
     }
+
+    // Diálogo de Exclusão de Item
+    itemParaDeletar?.let { item ->
+        AlertDialog(
+            onDismissRequest = { itemParaDeletar = null },
+            title = { Text("Excluir Item") },
+            text = { Text("Tem certeza que deseja excluir '${item.nome}'? Esta ação é irreversível.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.removeItem(item)
+                        Toast.makeText(context, "Item removido com sucesso!", Toast.LENGTH_SHORT).show()
+                        itemParaDeletar = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) { Text("Excluir", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemParaDeletar = null }) { Text("Cancelar", color = Color.Gray) }
+            }
+        )
+    }
+
+    // Diálogo de Edição de Item
+    itemParaEditar?.let { item ->
+        EditItemDialog(
+            item = item,
+            onDismiss = { itemParaEditar = null },
+            onSave = { itemEditado: Item ->
+                viewModel.addItem(itemEditado)
+                Toast.makeText(context, "Item atualizado com sucesso!", Toast.LENGTH_SHORT).show()
+                itemParaEditar = null
+            }
+        )
+    }
 }
 
 @Composable
-fun ItemsPageCard(item: Item, onClick: () -> Unit) {
+fun ItemsPageCard(
+    item: Item,
+    showEditDelete: Boolean,
+    onClick: () -> Unit,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
+) {
     val imageModel = remember(item.fotoUrl) {
         if (item.fotoUrl?.startsWith("data:image") == true) {
             try {
@@ -260,7 +309,6 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(94.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -268,7 +316,7 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -279,31 +327,56 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 if (!item.fotoUrl.isNullOrEmpty()) {
-                    coil.compose.AsyncImage(
+                    SubcomposeAsyncImage(
                         model = imageModel,
                         contentDescription = "Foto de ${item.nome}",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = IfpeGreen,
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        },
+                        error = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BrokenImage,
+                                    contentDescription = "Erro ao carregar imagem",
+                                    tint = Color.LightGray,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Item sem foto",
-                        tint = Color(0xFF94A3B8),
-                        modifier = Modifier.size(24.dp)
+                        imageVector = Icons.Default.Inbox,
+                        contentDescription = "Sem imagem",
+                        tint = Color.LightGray,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
+
             Spacer(modifier = Modifier.width(12.dp))
+
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val isPerdido = item.tipo == Tipo.PERDIDO
@@ -320,20 +393,6 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                             color = tagTextColor,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    // Tag adicional de Categoria para o Catálogo
-                    Surface(
-                        color = Color(0xFFF1F5F9),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = item.categoria,
-                            color = Color(0xFF475569),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -362,13 +421,90 @@ fun ItemsPageCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Ver detalhes",
-                tint = Color(0xFF94A3B8),
-                modifier = Modifier.size(24.dp)
-            )
+
+            if (showEditDelete) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onEditClick) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar Item", tint = IfpeGreen)
+                    }
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(Icons.Default.Delete, contentDescription = "Excluir Item", tint = Color(0xFFD32F2F))
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Ver detalhes",
+                    tint = Color(0xFF94A3B8),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
+    var nome by remember { mutableStateOf(item.nome) }
+    var localizacao by remember { mutableStateOf(item.localizacao) }
+    var perguntaVerificacao by remember { mutableStateOf(item.perguntaVerificacao ?: "") }
+    var statusSelecionado by remember { mutableStateOf(item.status) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar Item", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = nome,
+                    onValueChange = { nome = it },
+                    label = { Text("Nome") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = localizacao,
+                    onValueChange = { localizacao = it },
+                    label = { Text("Localização") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = perguntaVerificacao,
+                    onValueChange = { perguntaVerificacao = it },
+                    label = { Text("Pergunta de Verificação") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Status do Item", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Status.entries.forEach { status ->
+                        FilterChip(
+                            selected = statusSelecionado == status,
+                            onClick = { statusSelecionado = status },
+                            label = { Text(status.name, fontSize = 10.sp) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val itemAtualizado = item.copy(
+                        nome = nome,
+                        localizacao = localizacao,
+                        perguntaVerificacao = perguntaVerificacao.ifBlank { null },
+                        status = statusSelecionado
+                    )
+                    onSave(itemAtualizado)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
+            ) { Text("Salvar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+        }
+    )
 }

@@ -77,10 +77,8 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
-
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
@@ -158,7 +156,6 @@ fun LoginScreen(
                         color = Color(0xFF0F172A),
                         modifier = Modifier.padding(bottom = 14.dp)
                     )
-
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -188,9 +185,7 @@ fun LoginScreen(
                         ),
                         singleLine = true
                     )
-
                     Spacer(modifier = Modifier.height(6.dp))
-
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -232,7 +227,6 @@ fun LoginScreen(
                         ),
                         singleLine = true
                     )
-
                     Text(
                         text = "Esqueceu sua senha?",
                         color = IfpeGreen,
@@ -243,13 +237,10 @@ fun LoginScreen(
                             .padding(vertical = 8.dp)
                             .clickable { /* Ação de recuperação de senha */ }
                     )
-
                     Spacer(modifier = Modifier.height(4.dp))
-
                     Button(
                         onClick = {
                             if (!validarCampos()) return@Button
-
                             Firebase.auth.signInWithEmailAndPassword(email.trim(), password)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
@@ -274,54 +265,9 @@ fun LoginScreen(
                     ) {
                         Text(text = "Entrar", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
-                        Text(
-                            text = "ou",
-                            modifier = Modifier.padding(horizontal = 10.dp),
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
-                    }
-
-                    OutlinedButton(
-                        onClick = { },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.google_logo),
-                                contentDescription = "Ícone do Google",
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Entrar com Google",
-                                color = Color(0xFF1E293B),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
                 }
             }
         }
-
         Row(
             modifier = Modifier.padding(bottom = 16.dp, top = 8.dp),
             verticalAlignment = Alignment.CenterVertically

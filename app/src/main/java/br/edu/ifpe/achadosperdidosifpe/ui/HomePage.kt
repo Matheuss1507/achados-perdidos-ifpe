@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Search
@@ -32,6 +33,7 @@ import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import coil.compose.SubcomposeAsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -381,18 +383,36 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 if (!item.fotoUrl.isNullOrEmpty()) {
-                    coil.compose.AsyncImage(
+                    SubcomposeAsyncImage(
                         model = imageModel,
                         contentDescription = "Foto de ${item.nome}",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Item sem foto",
-                        tint = Color(0xFF94A3B8),
-                        modifier = Modifier.size(24.dp)
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = IfpeGreen,
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        },
+                        error = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BrokenImage,
+                                    contentDescription = "Erro ao carregar imagem",
+                                    tint = Color.LightGray,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                     )
                 }
             }

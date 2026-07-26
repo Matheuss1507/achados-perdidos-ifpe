@@ -1,7 +1,7 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
-import android.widget.Toast
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,10 +28,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
-import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Item
-import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
+import br.edu.ifpe.achadosperdidosifpe.model.MetodoDevolucao
 import br.edu.ifpe.achadosperdidosifpe.model.Status
+import br.edu.ifpe.achadosperdidosifpe.model.Tipo
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
+import coil.compose.SubcomposeAsyncImage
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -38,11 +43,11 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import java.util.UUID
-import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
-import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,12 +65,23 @@ fun FindItemPage(
     var data by remember { mutableStateOf("") }
     var caracteristicas by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
+    var metodoDevolucao by remember { mutableStateOf<MetodoDevolucao?>(MetodoDevolucao.LEVAR_AO_SETOR) }
+    var perguntaVerificacao by remember { mutableStateOf("") }
     var fotoUrl by remember { mutableStateOf<String?>(null) }
+
     var showMapDialog by remember { mutableStateOf(false) }
     var showPhotoOptions by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
     var isSalvando by remember { mutableStateOf(false) }
 
+    var nomeError by remember { mutableStateOf<String?>(null) }
+    var categoriaError by remember { mutableStateOf<String?>(null) }
+    var localizacaoError by remember { mutableStateOf<String?>(null) }
+    var dataError by remember { mutableStateOf<String?>(null) }
+
     val context = LocalContext.current
+    val datePickerState = rememberDatePickerState()
+
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -81,11 +97,7 @@ fun FindItemPage(
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
-            fotoUrl = uri.toString()
-        }
-    }
+    ) { uri -> uri?.let { fotoUrl = it.toString() } }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -98,13 +110,22 @@ fun FindItemPage(
                 }
                 fotoUrl = file.absolutePath
             } catch (e: Exception) {
-                Toast.makeText(context, "Erro ao salvar foto da câmera", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Erro ao salvar foto", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     val categorias = listOf("Documentos", "Eletrônicos", "Acessórios", "Vestuário", "Material escolar", "Outros")
     val scrollState = rememberScrollState()
+
+    fun validarCampos(): Boolean {
+        var isValid = true
+        if (nome.isBlank()) { nomeError = "Campo obrigatório."; isValid = false } else nomeError = null
+        if (categoriaSelecionada.isBlank()) { categoriaError = "Selecione uma categoria."; isValid = false } else categoriaError = null
+        if (localizacao.isBlank()) { localizacaoError = "Informe o local onde encontrou."; isValid = false } else localizacaoError = null
+        if (data.isBlank()) { dataError = "Informe a data."; isValid = false } else dataError = null
+        return isValid
+    }
 
     Column(
         modifier = modifier
@@ -119,21 +140,10 @@ fun FindItemPage(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Voltar",
-                    tint = IfpeGreen
-                )
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = IfpeGreen)
             }
-            Text(
-                text = "Encontrei um item",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(start = 4.dp)
-            )
+            Text("Encontrei um item", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
         }
-
         HorizontalDivider(color = Color(0xFFEEEEEE))
 
         Column(
@@ -144,46 +154,6 @@ fun FindItemPage(
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFFFFDE7), RoundedCornerShape(8.dp))
-                    .border(0.5.dp, Color(0xFFF9A825), RoundedCornerShape(8.dp))
-                    .padding(10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = Color(0xFFF57F17),
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Dica de Segurança: Não inclua detalhes muito específicos na foto. Deixe alguns detalhes para verificação do dono.",
-                    fontSize = 12.sp,
-                    color = Color(0xFF5D4037),
-                    lineHeight = 18.sp
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = null,
-                    tint = IfpeGreenMid,
-                    modifier = Modifier.size(15.dp)
-                )
-                Text(
-                    "Foto do Item (opcional)",
-                    fontSize = 13.sp,
-                    color = Color.DarkGray,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -193,44 +163,40 @@ fun FindItemPage(
                 border = BorderStroke(1.5.dp, Color(0xFFBBBBBB)),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     if (fotoUrl != null) {
-                        coil.compose.AsyncImage(
+                        SubcomposeAsyncImage(
                             model = fotoUrl,
                             contentDescription = "Foto selecionada",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            loading = {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = IfpeGreen, modifier = Modifier.size(28.dp))
+                                }
+                            },
+                            error = {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.BrokenImage, contentDescription = "Erro na foto", tint = Color.Gray)
+                                }
+                            }
                         )
                     } else {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = null,
-                                tint = Color.LightGray,
-                                modifier = Modifier.size(36.dp)
-                            )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(36.dp))
                             Text("Clique para adicionar foto", fontSize = 13.sp, color = Color.Gray)
-                            Text(
-                                "Sem detalhes muito específicos",
-                                fontSize = 11.sp,
-                                color = Color.LightGray
-                            )
                         }
                     }
                 }
             }
 
-            FormField(label = "O que você encontrou?") {
+            FormField(label = "O que você encontrou? *") {
                 OutlinedTextField(
                     value = nome,
-                    onValueChange = { nome = it },
+                    onValueChange = { nome = it; if (nomeError != null) nomeError = null },
                     placeholder = { Text("Ex: Caderno de Cálculo", color = Color.LightGray) },
+                    isError = nomeError != null,
+                    supportingText = { nomeError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -239,7 +205,7 @@ fun FindItemPage(
                 )
             }
 
-            FormField(label = "Categoria") {
+            FormField(label = "Categoria *") {
                 ExposedDropdownMenuBox(
                     expanded = categoriaExpanded,
                     onExpandedChange = { if (!isSalvando) categoriaExpanded = it }
@@ -249,10 +215,10 @@ fun FindItemPage(
                         onValueChange = {},
                         readOnly = true,
                         placeholder = { Text("Selecione...", color = Color.LightGray) },
+                        isError = categoriaError != null,
+                        supportingText = { categoriaError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaExpanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         shape = RoundedCornerShape(10.dp),
                         colors = fieldColors(),
                         enabled = !isSalvando
@@ -267,6 +233,7 @@ fun FindItemPage(
                                 onClick = {
                                     categoriaSelecionada = categoria
                                     categoriaExpanded = false
+                                    categoriaError = null
                                 }
                             )
                         }
@@ -287,13 +254,13 @@ fun FindItemPage(
                 )
             }
 
-            HorizontalDivider(color = Color(0xFFEEEEEE))
-
-            FormField(label = "Onde encontrou?", icon = Icons.Default.LocationOn) {
+            FormField(label = "Onde encontrou? *", icon = Icons.Default.LocationOn) {
                 OutlinedTextField(
                     value = localizacao,
-                    onValueChange = { localizacao = it },
-                    placeholder = { Text("Selecionar no mapa...", color = Color.LightGray) },
+                    onValueChange = { localizacao = it; if (localizacaoError != null) localizacaoError = null },
+                    placeholder = { Text("Selecionar no mapa ou digitar...", color = Color.LightGray) },
+                    isError = localizacaoError != null,
+                    supportingText = { localizacaoError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     trailingIcon = {
                         IconButton(
                             enabled = !isSalvando,
@@ -305,12 +272,7 @@ fun FindItemPage(
                                 }
                             }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Map,
-                                contentDescription = "Abrir mapa",
-                                tint = IfpeGreenMid,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(Icons.Default.Map, contentDescription = "Abrir mapa", tint = IfpeGreenMid)
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -321,11 +283,18 @@ fun FindItemPage(
                 )
             }
 
-            FormField(label = "Quando encontrou?", icon = Icons.Default.CalendarMonth) {
+            FormField(label = "Quando encontrou? *", icon = Icons.Default.CalendarMonth) {
                 OutlinedTextField(
                     value = data,
-                    onValueChange = { data = it },
+                    onValueChange = { data = it; if (dataError != null) dataError = null },
                     placeholder = { Text("dd/mm/aaaa", color = Color.LightGray) },
+                    isError = dataError != null,
+                    supportingText = { dataError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }, enabled = !isSalvando) {
+                            Icon(Icons.Default.CalendarMonth, contentDescription = "Abrir calendário", tint = IfpeGreenMid)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -334,13 +303,44 @@ fun FindItemPage(
                 )
             }
 
-            HorizontalDivider(color = Color(0xFFEEEEEE))
+            FormField(label = "Método de Devolução", icon = Icons.Default.Handshake) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = metodoDevolucao == MetodoDevolucao.LEVAR_AO_SETOR,
+                        onClick = { metodoDevolucao = MetodoDevolucao.LEVAR_AO_SETOR },
+                        label = { Text("Entregar no Setor", fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = IfpeGreen, selectedLabelColor = Color.White)
+                    )
+                    FilterChip(
+                        selected = metodoDevolucao == MetodoDevolucao.DEVOLVER_PESSOALMENTE,
+                        onClick = { metodoDevolucao = MetodoDevolucao.DEVOLVER_PESSOALMENTE },
+                        label = { Text("Devolver Pessoalmente", fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = IfpeGreen, selectedLabelColor = Color.White)
+                    )
+                }
+            }
 
-            FormField(label = "Características únicas", icon = Icons.Default.Fingerprint) {
+            FormField(label = "Pergunta de Verificação (opcional)", icon = Icons.Default.HelpOutline) {
+                OutlinedTextField(
+                    value = perguntaVerificacao,
+                    onValueChange = { perguntaVerificacao = it },
+                    placeholder = { Text("Ex: Qual adesivo está colado na capa?", color = Color.LightGray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors(),
+                    singleLine = true,
+                    enabled = !isSalvando
+                )
+            }
+
+            FormField(label = "Características Únicas", icon = Icons.Default.Fingerprint) {
                 OutlinedTextField(
                     value = caracteristicas,
                     onValueChange = { caracteristicas = it },
-                    placeholder = { Text("Ex: Tem um adesivo do Python, página 47 marcada.", color = Color.LightGray) },
+                    placeholder = { Text("Ex: Possui risco vermelho no lado esquerdo...", color = Color.LightGray) },
                     modifier = Modifier.fillMaxWidth().height(96.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -353,7 +353,7 @@ fun FindItemPage(
                 OutlinedTextField(
                     value = descricao,
                     onValueChange = { descricao = it },
-                    placeholder = { Text("Qualquer informação adicional...", color = Color.LightGray) },
+                    placeholder = { Text("Qualquer outra informação relevante...", color = Color.LightGray) },
                     modifier = Modifier.fillMaxWidth().height(80.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -364,15 +364,13 @@ fun FindItemPage(
 
             Button(
                 onClick = {
-                    if (nome.isBlank() || categoriaSelecionada.isBlank() || localizacao.isBlank() || data.isBlank()) {
-                        Toast.makeText(context, "Por favor, preencha os campos obrigatórios (*)", Toast.LENGTH_SHORT).show()
+                    if (!validarCampos()) {
+                        Toast.makeText(context, "Preencha os campos obrigatórios (*)", Toast.LENGTH_SHORT).show()
                     } else {
                         isSalvando = true
                         val parsedDate = try {
                             SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(data) ?: Date()
-                        } catch (e: Exception) {
-                            Date()
-                        }
+                        } catch (e: Exception) { Date() }
 
                         val item = Item(
                             id = UUID.randomUUID().toString(),
@@ -385,45 +383,56 @@ fun FindItemPage(
                             localizacao = localizacao,
                             caracteristicasUnicas = caracteristicas.ifBlank { null },
                             descricao = descricao.ifBlank { null },
+                            metodoDevolucao = metodoDevolucao,
+                            perguntaVerificacao = perguntaVerificacao.ifBlank { null },
                             fotoUrl = null,
                             data = parsedDate
                         )
-
-                        viewModel.addItemComFoto(context, item,fotoUrl) { sucesso ->
+                        viewModel.addItemComFoto(context, item, fotoUrl) { sucesso ->
                             isSalvando = false
                             if (sucesso) {
                                 Toast.makeText(context, "Item encontrado registrado!", Toast.LENGTH_SHORT).show()
                                 onNavigateToItems()
                             } else {
-                                Toast.makeText(context, "Falha ao enviar dados ou imagem.", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Falha ao enviar os dados.", Toast.LENGTH_LONG).show()
                             }
                         }
                     }
                 },
                 enabled = !isSalvando,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
             ) {
                 if (isSalvando) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Registrar item encontrado",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Text("Registrar item encontrado", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = millis }
+                        data = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(cal.time)
+                        if (dataError != null) dataError = null
+                    }
+                    showDatePicker = false
+                }) { Text("Confirmar", color = IfpeGreen) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar", color = Color.Gray) }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 
@@ -431,28 +440,15 @@ fun FindItemPage(
         AlertDialog(
             onDismissRequest = { showPhotoOptions = false },
             title = { Text("Adicionar Foto") },
-            text = { Text("Selecione se deseja tirar uma foto com a câmera ou escolher um arquivo da sua galeria.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showPhotoOptions = false
-                    cameraLauncher.launch(null)
-                }) { Text("Câmera", color = IfpeGreen) }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showPhotoOptions = false
-                    galleryLauncher.launch("image/*")
-                }) { Text("Galeria", color = IfpeGreen) }
-            }
+            text = { Text("Escolha a origem da foto do item.") },
+            confirmButton = { TextButton(onClick = { showPhotoOptions = false; cameraLauncher.launch(null) }) { Text("Câmera", color = IfpeGreen) } },
+            dismissButton = { TextButton(onClick = { showPhotoOptions = false; galleryLauncher.launch("image/*") }) { Text("Galeria", color = IfpeGreen) } }
         )
     }
 
     if (showMapDialog) {
         Dialog(onDismissRequest = { showMapDialog = false }) {
-            Card(
-                modifier = Modifier.fillMaxWidth().height(450.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
+            Card(modifier = Modifier.fillMaxWidth().height(450.dp), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f)) {
                         val cameraPositionState = rememberCameraPositionState()
@@ -463,17 +459,13 @@ fun FindItemPage(
                             uiSettings = MapUiSettings(myLocationButtonEnabled = true),
                             onMapClick = { latLng ->
                                 localizacao = "Lat: ${String.format(Locale.US, "%.4f", latLng.latitude)}, Lng: ${String.format(Locale.US, "%.4f", latLng.longitude)}"
+                                if (localizacaoError != null) localizacaoError = null
                                 showMapDialog = false
                             }
                         )
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { showMapDialog = false }) {
-                            Text("Cancelar", color = IfpeGreen)
-                        }
+                    Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showMapDialog = false }) { Text("Cancelar", color = IfpeGreen) }
                     }
                 }
             }

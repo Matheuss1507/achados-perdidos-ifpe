@@ -10,6 +10,7 @@ import br.edu.ifpe.achadosperdidosifpe.db.fb.FBUser
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBItem
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toItem
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toUser
+import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBUser
 import java.io.ByteArrayOutputStream
 import java.io.File
 import android.util.Base64
@@ -17,16 +18,13 @@ import android.util.Base64
 class MainViewModel(
     private val db: FBDatabase
 ) : ViewModel(), FBDatabase.Listener {
-
     private val _items = mutableStateMapOf<String, Item>()
-
     val items: List<Item>
         get() = _items.values.toList().sortedByDescending { it.data }
 
     private val _user = mutableStateOf<User?>(null)
     val user: User?
         get() = _user.value
-
 
     private var _selectedItemId = mutableStateOf<String?>(null)
     var selectedItemId: String?
@@ -40,7 +38,6 @@ class MainViewModel(
         db.setListener(this)
     }
 
-
     fun addItem(item: Item) {
         db.add(item.toFBItem())
     }
@@ -49,6 +46,10 @@ class MainViewModel(
         db.remove(item.toFBItem())
     }
 
+    fun updateUserProfile(updatedUser: User) {
+        db.register(updatedUser.toFBUser())
+        _user.value = updatedUser
+    }
 
     override fun onUserLoaded(user: FBUser) {
         _user.value = user.toUser()
@@ -83,6 +84,7 @@ class MainViewModel(
             onComplete(true)
             return
         }
+
         try {
             val bytes = if (localPath.startsWith("content://") || localPath.startsWith("file://")) {
                 val uri = android.net.Uri.parse(localPath)
@@ -105,7 +107,6 @@ class MainViewModel(
             val out = ByteArrayOutputStream()
             bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, out)
             val compressedBytes = out.toByteArray()
-
             val base64String = Base64.encodeToString(compressedBytes, Base64.NO_WRAP)
             val dataUri = "data:image/jpeg;base64,$base64String"
 
