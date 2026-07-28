@@ -28,7 +28,6 @@ import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
-import java.util.Locale
 
 data class SetorCampus(val nome: String, val cor: Color)
 
@@ -52,13 +51,13 @@ fun LocationSelectionDialog(
     hasLocationPermission: Boolean = false,
     onRequestPermission: () -> Unit = {},
     onDismissRequest: () -> Unit,
-    onLocationSelected: (String) -> Unit
+    onLocationSelected: (setor: String?, latitude: Double?, longitude: Double?) -> Unit
 ) {
     var localSelecionadoTexto by remember { mutableStateOf(initialLocation) }
     var pontoMapaSelecionado by remember { mutableStateOf<LatLng?>(null) }
     var setorSelecionado by remember { mutableStateOf<SetorCampus?>(null) }
 
-    val defaultPos = LatLng(-8.0522, -34.9286)
+    val defaultPos = LatLng(-8.059346391263496, -34.950591571163656)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultPos, 17f)
     }
@@ -163,7 +162,6 @@ fun LocationSelectionDialog(
                                     onClick = {
                                         if (hasLocationPermission) {
                                             pontoMapaSelecionado = defaultPos
-                                            localSelecionadoTexto = "Lat: -8.0522, Lng: -34.9286"
                                         } else {
                                             onRequestPermission()
                                         }
@@ -178,7 +176,7 @@ fun LocationSelectionDialog(
 
                                 OutlinedButton(
                                     onClick = {
-                                        setorSelecionado = null
+                                        onLocationSelected("Fora do Campus", null, null)
                                     },
                                     modifier = Modifier.weight(1f),
                                     border = BorderStroke(1.dp, IfpeGreen),
@@ -207,7 +205,7 @@ fun LocationSelectionDialog(
                             onMapClick = { latLng ->
                                 pontoMapaSelecionado = latLng
                                 setorSelecionado = null
-                                localSelecionadoTexto = String.format(Locale.US, "Lat: %.5f, Lng: %.5f", latLng.latitude, latLng.longitude)
+                                localSelecionadoTexto = "Ponto no mapa"
                             }
                         ) {
                             pontoMapaSelecionado?.let { latLng ->
@@ -299,7 +297,7 @@ fun LocationSelectionDialog(
 
                     OutlinedButton(
                         onClick = {
-                            onLocationSelected("Fora do Campus")
+                            onLocationSelected("Fora do Campus", null, null)
                         },
                         modifier = Modifier
                             .weight(1.2f)
@@ -312,9 +310,11 @@ fun LocationSelectionDialog(
 
                     Button(
                         onClick = {
-                            if (localSelecionadoTexto.isNotBlank()) {
-                                onLocationSelected(localSelecionadoTexto)
-                            }
+                            onLocationSelected(
+                                setorSelecionado?.nome,
+                                pontoMapaSelecionado?.latitude,
+                                pontoMapaSelecionado?.longitude
+                            )
                         },
                         modifier = Modifier
                             .weight(1.2f)

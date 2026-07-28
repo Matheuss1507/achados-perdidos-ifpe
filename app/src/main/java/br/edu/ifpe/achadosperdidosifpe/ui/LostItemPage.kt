@@ -63,13 +63,16 @@ fun LostItemPage(
     var categoriaExpanded by remember { mutableStateOf(false) }
     var categoriaSelecionada by remember { mutableStateOf("") }
     var corPrincipal by remember { mutableStateOf("") }
-    var localizacao by remember { mutableStateOf("") }
+    var setor by remember { mutableStateOf<String?>(null) }
+    var latitude by remember { mutableStateOf<Double?>(null) }
+    var longitude by remember { mutableStateOf<Double?>(null) }
     var data by remember { mutableStateOf("") }
     var caracteristicas by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var metodoDevolucao by remember { mutableStateOf<MetodoDevolucao?>(MetodoDevolucao.LEVAR_AO_SETOR) }
     var perguntaVerificacao by remember { mutableStateOf("") }
     var fotoUrl by remember { mutableStateOf<String?>(null) }
+
     var showMapDialog by remember { mutableStateOf(false) }
     var showPhotoOptions by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -123,7 +126,13 @@ fun LostItemPage(
         var isValid = true
         if (nome.isBlank()) { nomeError = "Campo obrigatório."; isValid = false } else nomeError = null
         if (categoriaSelecionada.isBlank()) { categoriaError = "Selecione uma categoria."; isValid = false } else categoriaError = null
-        if (localizacao.isBlank()) { localizacaoError = "Informe onde perdeu."; isValid = false } else localizacaoError = null
+        val temLocalizacao = !setor.isNullOrBlank() || (latitude != null && longitude != null)
+        if (!temLocalizacao) {
+            localizacaoError = "Informe onde encontrou/perdeu o item.";
+            isValid = false
+        } else {
+            localizacaoError = null
+        }
         if (data.isBlank()) { dataError = "Informe a data."; isValid = false } else dataError = null
         return isValid
     }
@@ -145,6 +154,7 @@ fun LostItemPage(
             }
             Text("Perdi um item", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
         }
+
         HorizontalDivider(color = Color(0xFFE2E8F0))
 
         Column(
@@ -257,8 +267,15 @@ fun LostItemPage(
             }
 
             FormField(label = "Onde perdeu? *", icon = Icons.Default.LocationOn) {
+                val localizacaoTextoExibicao = when {
+                    !setor.isNullOrBlank() -> setor!!
+                    latitude != null && longitude != null -> "Ponto no mapa"
+                    else -> ""
+                }
                 LocationFieldWithMapPreview(
-                    localizacao = localizacao,
+                    localizacao = localizacaoTextoExibicao,
+                    latitude = latitude,
+                    longitude = longitude,
                     isError = localizacaoError != null,
                     errorMessage = localizacaoError,
                     enabled = !isSalvando,
@@ -269,9 +286,11 @@ fun LostItemPage(
                             showMapDialog = true
                         }
                     },
-                    onOpenGoogleMaps = { abrirNoGoogleMaps(context, localizacao) },
+                    onOpenGoogleMaps = { abrirNoGoogleMaps(context, setor, latitude, longitude) },
                     onClearLocation = {
-                        localizacao = ""
+                        setor = null
+                        latitude = null
+                        longitude = null
                         localizacaoError = null
                     }
                 )
@@ -370,11 +389,13 @@ fun LostItemPage(
                             id = UUID.randomUUID().toString(),
                             usuarioId = viewModel.user?.id ?: "user_anonimo",
                             tipo = Tipo.PERDIDO,
-                            status = Status.PERDIDO,
+                            status = Status.NO_SETOR,
                             nome = nome,
                             categoria = categoriaSelecionada,
                             corPrincipal = corPrincipal.ifBlank { null },
-                            localizacao = localizacao,
+                            setor = setor,
+                            latitude = latitude,
+                            longitude = longitude,
                             caracteristicasUnicas = caracteristicas.ifBlank { null },
                             descricao = descricao.ifBlank { null },
                             metodoDevolucao = metodoDevolucao,
@@ -443,47 +464,48 @@ fun LostItemPage(
 
     if (showMapDialog) {
         LocationSelectionDialog(
-            initialLocation = localizacao,
+            initialLocation = setor ?: "",
             hasLocationPermission = hasLocationPermission,
             onRequestPermission = {
                 permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
             },
             onDismissRequest = { showMapDialog = false },
-            onLocationSelected = { loc ->
-                localizacao = loc
-                if (localizacaoError != null) localizacaoError = null
+            onLocationSelected = { selSetor, selLat, selLng ->
+                setor = selSetor
+                latitude = selLat
+                longitude = selLng
+                localizacaoError = null
                 showMapDialog = false
             }
         )
     }
 }
 
-private fun abrirNoGoogleMaps(context: Context, localizacao: String) {
-    if (localizacao.isBlank()) return
-
-    val intentUri = if (localizacao.contains("Lat:") && localizacao.contains("Lng:")) {
-        try {
-            val lat = localizacao.substringAfter("Lat:").substringBefore(",").substringBefore(")").trim().toDouble()
-            val lng = localizacao.substringAfter("Lng:").substringBefore(")").trim().toDouble()
-            Uri.parse("geo:$lat,$lng?q=$lat,$lng(Local+do+Item)")
-        } catch (e: Exception) {
-            Uri.parse("geo:0,0?q=${Uri.encode(localizacao)}")
-        }
+private fun abrirNoGoogleMaps(
+    context: Context,
+    setor: String?,
+    latitude: Double?,
+    longitude: Double?
+) {
+    if (latitude == null && longitude == null && setor.isNullOrBlank()) return
+    val label = setor?.ifBlank { "Local do Item" } ?: "Local do Item"
+    val intentUri = if (latitude != null && longitude != null) {
+        Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude(${Uri.encode(label)})")
     } else {
-        Uri.parse("geo:0,0?q=${Uri.encode(localizacao)}")
+        Uri.parse("geo:0,0?q=${Uri.encode(setor)}")
     }
-
     val mapIntent = Intent(Intent.ACTION_VIEW, intentUri).apply {
         setPackage("com.google.android.apps.maps")
     }
-
     try {
         context.startActivity(mapIntent)
     } catch (e: Exception) {
-        val browserIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(localizacao)}")
-        )
+        val webUrl = if (latitude != null && longitude != null) {
+            "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude"
+        } else {
+            "https://www.google.com/maps/search/?api=1&query=${Uri.encode(setor)}"
+        }
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl))
         context.startActivity(browserIntent)
     }
 }
@@ -491,6 +513,8 @@ private fun abrirNoGoogleMaps(context: Context, localizacao: String) {
 @Composable
 private fun LocationFieldWithMapPreview(
     localizacao: String,
+    latitude: Double?,
+    longitude: Double?,
     isError: Boolean,
     errorMessage: String?,
     enabled: Boolean,
@@ -498,13 +522,9 @@ private fun LocationFieldWithMapPreview(
     onOpenGoogleMaps: () -> Unit,
     onClearLocation: () -> Unit
 ) {
-    val latLng = remember(localizacao) {
-        if (localizacao.contains("Lat:") && localizacao.contains("Lng:")) {
-            try {
-                val lat = localizacao.substringAfter("Lat:").substringBefore(",").substringBefore(")").trim().toDouble()
-                val lng = localizacao.substringAfter("Lng:").substringBefore(")").trim().toDouble()
-                LatLng(lat, lng)
-            } catch (e: Exception) { null }
+    val latLng = remember(latitude, longitude) {
+        if (latitude != null && longitude != null) {
+            LatLng(latitude, longitude)
         } else null
     }
 
@@ -604,6 +624,7 @@ private fun LocationFieldWithMapPreview(
                                 maxLines = 2
                             )
                         }
+
                         Row {
                             IconButton(onClick = onOpenMapDialog, enabled = enabled) {
                                 Icon(

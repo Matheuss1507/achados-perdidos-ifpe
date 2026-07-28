@@ -27,14 +27,24 @@ data class Item(
     val nome: String = "",
     val categoria: String = "",
     val corPrincipal: String? = null,
-    val localizacao: String = "",
+    val setor: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val caracteristicasUnicas: String? = null,
     val descricao: String? = null,
     val metodoDevolucao: MetodoDevolucao? = null,
     val perguntaVerificacao: String? = null,
+    val respostaVerificacao: String? = null,
 
     val fotoUrl: String? = null,
 
     @ServerTimestamp
     val data: Date? = null
-)
+) {
+    val localizacaoFormatada: String
+        get() = when {
+            !setor.isNullOrBlank() -> setor
+            latitude != null && longitude != null -> "Ponto no mapa"
+            else -> "Local não especificado"
+        }
+    }

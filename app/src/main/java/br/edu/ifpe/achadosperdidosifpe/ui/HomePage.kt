@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Search
@@ -48,6 +49,7 @@ fun HomePage(
     var searchText by remember { mutableStateOf("") }
     var currentFilter by remember { mutableStateOf(ItemFilter()) }
     var showFilterSheet by remember { mutableStateOf(false) }
+
     val scrollState = rememberScrollState()
 
     val filteredItems = viewModel.items.filter { item ->
@@ -57,6 +59,7 @@ fun HomePage(
         val matchesTipo = currentFilter.tipo == null || item.tipo == currentFilter.tipo
         val matchesStatus = currentFilter.status == null || item.status == currentFilter.status
         val matchesCor = currentFilter.cor == null || item.corPrincipal?.contains(currentFilter.cor!!, ignoreCase = true) == true
+
         matchesSearch && matchesCategoria && matchesTipo && matchesStatus && matchesCor
     }
 
@@ -288,6 +291,7 @@ fun HomePage(
                         fontSize = 17.sp,
                         color = Color(0xFF1E293B)
                     )
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable { onSeeAllClick() }
@@ -414,9 +418,17 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                             }
                         }
                     )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Inbox,
+                        contentDescription = null,
+                        tint = Color.LightGray
+                    )
                 }
             }
+
             Spacer(modifier = Modifier.width(12.dp))
+
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -446,12 +458,14 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                         )
                     }
                 }
+
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = Color(0xFF0F172A)
                 )
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
@@ -461,14 +475,16 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = item.localizacao,
+                        text = item.localizacaoFormatada,
                         color = Color(0xFF64748B),
                         fontSize = 12.sp,
                         maxLines = 1
                     )
                 }
             }
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",

@@ -270,7 +270,7 @@ fun ItemsPageCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(item.nome, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
-                Text(item.localizacao, fontSize = 12.sp, color = Color(0xFF64748B), maxLines = 1)
+                Text(item.localizacaoFormatada, fontSize = 12.sp, color = Color(0xFF64748B), maxLines = 1)
             }
             if (showEditDelete) {
                 Row {
@@ -288,7 +288,7 @@ fun ItemsPageCard(
 @Composable
 fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
     var nome by remember { mutableStateOf(item.nome) }
-    var localizacao by remember { mutableStateOf(item.localizacao) }
+    var setor by remember { mutableStateOf(item.setor ?: "") } // <--- Novo estado
     var perguntaVerificacao by remember { mutableStateOf(item.perguntaVerificacao ?: "") }
     var statusSelecionado by remember { mutableStateOf(item.status) }
 
@@ -311,9 +311,10 @@ fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
                     singleLine = true
                 )
                 OutlinedTextField(
-                    value = localizacao,
-                    onValueChange = { localizacao = it },
-                    label = { Text("Localização") },
+                    value = setor,
+                    onValueChange = { setor = it },
+                    label = { Text("Setor / Bloco") }, // <--- Atualizado
+                    placeholder = { Text("Ex: Bloco A, Biblioteca...") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -354,7 +355,7 @@ fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
                 onClick = {
                     val itemAtualizado = item.copy(
                         nome = nome,
-                        localizacao = localizacao,
+                        setor = setor.ifBlank { null }, // <--- Salva o novo campo setor
                         perguntaVerificacao = perguntaVerificacao.ifBlank { null },
                         status = statusSelecionado
                     )

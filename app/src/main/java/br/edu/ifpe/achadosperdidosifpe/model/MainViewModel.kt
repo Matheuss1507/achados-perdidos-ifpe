@@ -118,4 +118,24 @@ class MainViewModel(
             onComplete(false)
         }
     }
+
+    fun responderPerguntaVerificacao(item: Item, resposta: String, onComplete: (Boolean) -> Unit = {}) {
+        val itemAtualizado = item.copy(respostaVerificacao = resposta)
+        try {
+            db.add(itemAtualizado.toFBItem())
+            onComplete(true)
+        } catch (e: Exception) {
+            onComplete(false)
+        }
+    }
+
+    fun confirmarDevolucao(item: Item, onComplete: (Boolean) -> Unit = {}) {
+        val itemAtualizado = item.copy(status = Status.RESOLVIDO)
+        try {
+            db.add(itemAtualizado.toFBItem())
+            onComplete(true)
+        } catch (e: Exception) {
+            onComplete(false)
+        }
+    }
 }

@@ -1,7 +1,9 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,8 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,9 +26,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.edu.ifpe.achadosperdidosifpe.model.Item
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import coil.compose.SubcomposeAsyncImage
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -38,10 +41,17 @@ import java.util.Locale
 @Composable
 fun ItemDetailsPage(
     item: Item? = null,
+    viewModel: MainViewModel,
     onBackClick: () -> Unit = {},
     onChatClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val currentUserId = viewModel.user?.id
+    val isCriador = item?.usuarioId == currentUserId
+
+    var respostaTexto by remember(item?.respostaVerificacao) { mutableStateOf(item?.respostaVerificacao ?: "") }
+    var isEnviandoResposta by remember { mutableStateOf(false) }
+
     val imageModel = remember(item?.fotoUrl) {
         if (item?.fotoUrl?.startsWith("data:image") == true) {
             try {
@@ -58,38 +68,20 @@ fun ItemDetailsPage(
     val scrollState = rememberScrollState()
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale("pt", "BR")) }
 
-    val latLngItem = remember(item?.localizacao) {
-        item?.localizacao?.let { loc ->
-            if (loc.contains("Lat:") && loc.contains("Lng:")) {
-                try {
-                    val parts = loc.split(",")
-                    val lat = parts[0].substringAfter("Lat:").trim().toDouble()
-                    val lng = parts[1].substringAfter("Lng:").trim().toDouble()
-                    LatLng(lat, lng)
-                } catch (e: Exception) { null }
-            } else null
-        }
+    val latLngItem = remember(item?.latitude, item?.longitude) {
+        if (item?.latitude != null && item.longitude != null) {
+            LatLng(item.latitude, item.longitude)
+        } else null
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Detalhes do Item",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
+                title = { Text("Detalhes do Item", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = IfpeGreen),
@@ -107,6 +99,8 @@ fun ItemDetailsPage(
                 Text(text = "Item não encontrado...", color = Color.Gray)
             }
         } else {
+            val isResolvido = item.status == Status.RESOLVIDO
+
             val tagBgColor = if (item.tipo == Tipo.PERDIDO) Color(0xFFFCE8E6) else Color(0xFFE6F4EA)
             val tagTextColor = if (item.tipo == Tipo.PERDIDO) Color(0xFFC5221F) else Color(0xFF137333)
             val tagText = if (item.tipo == Tipo.PERDIDO) "Item Perdido" else "Item Encontrado"
@@ -127,6 +121,31 @@ fun ItemDetailsPage(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Banner de Alerta se o Item estiver Resolvido
+                if (isResolvido) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2FE)),
+                        border = BorderStroke(1.dp, Color(0xFF0284C7)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF0284C7))
+                            Text(
+                                text = "Este item já foi DEVOLVIDO/RESOLVIDO. O chat e as interações foram desativados.",
+                                color = Color(0xFF0369A1),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                // Foto do Item
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -137,11 +156,21 @@ fun ItemDetailsPage(
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         if (!item.fotoUrl.isNullOrEmpty()) {
-                            coil.compose.AsyncImage(
+                            SubcomposeAsyncImage(
                                 model = imageModel,
                                 contentDescription = "Foto de ${item.nome}",
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                loading = {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator(color = IfpeGreen, modifier = Modifier.size(28.dp))
+                                    }
+                                },
+                                error = {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.BrokenImage, contentDescription = "Erro ao carregar foto", tint = Color.Gray)
+                                    }
+                                }
                             )
                         } else {
                             Icon(
@@ -154,6 +183,7 @@ fun ItemDetailsPage(
                     }
                 }
 
+                // Badges de Tipo e Status
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Surface(color = tagBgColor, shape = RoundedCornerShape(16.dp)) {
                         Row(
@@ -177,20 +207,13 @@ fun ItemDetailsPage(
                     }
                 }
 
+                // Nome e Descrição
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = item.nome,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
-                    Text(
-                        text = item.descricao ?: "Nenhuma descrição detalhada fornecida.",
-                        fontSize = 15.sp,
-                        color = Color(0xFF475569)
-                    )
+                    Text(text = item.nome, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    Text(text = item.descricao ?: "Nenhuma descrição detalhada fornecida.", fontSize = 15.sp, color = Color(0xFF475569))
                 }
 
+                // Localização Estruturada (Setor + Coordenadas)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -201,19 +224,32 @@ fun ItemDetailsPage(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             Surface(
                                 shape = CircleShape,
                                 color = Color(0xFFDCFCE7),
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = IfpeGreen, modifier = Modifier.size(20.dp))
+                                    Icon(
+                                        Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = IfpeGreen,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
                             }
                             Column {
                                 Text("Localização Registrada", fontSize = 12.sp, color = Color(0xFF64748B))
-                                Text(item.localizacao, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                Text(
+                                    item.localizacaoFormatada,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A)
+                                )
                             }
                         }
 
@@ -221,64 +257,51 @@ fun ItemDetailsPage(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(180.dp)
+                                    .height(160.dp)
                                     .clip(RoundedCornerShape(12.dp))
                             ) {
-                                val cameraPos = rememberCameraPositionState {
-                                    position = CameraPosition.fromLatLngZoom(latLngItem, 16f)
-                                }
-                                val markerState = rememberMarkerState(position = latLngItem)
+                                val cameraPos = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(latLngItem, 16f) }
                                 GoogleMap(
                                     modifier = Modifier.fillMaxSize(),
                                     cameraPositionState = cameraPos,
                                     uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
                                 ) {
-                                    Marker(state = markerState, title = item.nome)
+                                    Marker(state = rememberMarkerState(position = latLngItem), title = item.nome)
                                 }
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    val gmmIntentUri = Uri.parse("geo:${latLngItem.latitude},${latLngItem.longitude}?q=${latLngItem.latitude},${latLngItem.longitude}(${item.nome})")
-                                    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                                    mapIntent.setPackage("com.google.android.apps.maps")
-                                    context.startActivity(mapIntent)
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, IfpeGreen)
-                            ) {
-                                Icon(Icons.Default.Map, contentDescription = null, tint = IfpeGreen, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Abrir Rota no Google Maps", color = IfpeGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
 
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
-
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFF1F5F9),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
-                                }
-                            }
-                            Column {
-                                Text("Data do Registro", fontSize = 12.sp, color = Color(0xFF64748B))
-                                Text(
-                                    text = item.data?.let { dateFormatter.format(it) } ?: "-",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF0F172A)
+                        OutlinedButton(
+                            onClick = {
+                                abrirNoGoogleMaps(
+                                    context = context,
+                                    setor = item.setor,
+                                    latitude = item.latitude,
+                                    longitude = item.longitude
                                 )
-                            }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, IfpeGreen)
+                        ) {
+                            Icon(
+                                Icons.Default.Map,
+                                contentDescription = null,
+                                tint = IfpeGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Abrir no Google Maps",
+                                color = IfpeGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
                         }
                     }
                 }
 
+                // Informações Adicionais
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -297,15 +320,121 @@ fun ItemDetailsPage(
                                 Text(cor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
                             }
                         }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Data do Registro:", fontSize = 14.sp, color = Color(0xFF64748B))
+                            Text(
+                                text = item.data?.let { dateFormatter.format(it) } ?: "-",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
                     }
                 }
 
-                if (item.status != Status.RESOLVIDO) {
+                // --- SEÇÃO: PERGUNTA DE VERIFICAÇÃO & CONFIRMAÇÃO DE DEVOLUÇÃO ---
+                if (!item.perguntaVerificacao.isNullOrBlank()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                        border = BorderStroke(1.dp, Color(0xFFFCD34D)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.HelpOutline, contentDescription = null, tint = Color(0xFFD97706))
+                                Text("Pergunta de Verificação", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF92400E))
+                            }
+
+                            Text(
+                                text = item.perguntaVerificacao,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF78350F)
+                            )
+
+                            // 1. Visão do Solicitante: Enviar Resposta (se ainda não resolvido)
+                            if (!isCriador && !isResolvido) {
+                                OutlinedTextField(
+                                    value = respostaTexto,
+                                    onValueChange = { respostaTexto = it },
+                                    placeholder = { Text("Digite sua resposta para comprovar a posse...") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    enabled = item.respostaVerificacao == null && !isEnviandoResposta
+                                )
+
+                                if (item.respostaVerificacao == null) {
+                                    Button(
+                                        onClick = {
+                                            if (respostaTexto.isNotBlank()) {
+                                                isEnviandoResposta = true
+                                                viewModel.responderPerguntaVerificacao(item, respostaTexto) { sucesso ->
+                                                    isEnviandoResposta = false
+                                                    if (sucesso) Toast.makeText(context, "Resposta enviada!", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        },
+                                        enabled = !isEnviandoResposta && respostaTexto.isNotBlank(),
+                                        colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
+                                    ) {
+                                        Text("Enviar Resposta")
+                                    }
+                                } else {
+                                    Text("Resposta enviada! Aguardando validação do anunciante.", fontSize = 12.sp, color = IfpeGreen, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            // 2. Visão do Criador do Anúncio: Validar Resposta & Confirmar Devolução
+                            if (isCriador) {
+                                Surface(
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text("Resposta do Solicitante:", fontSize = 12.sp, color = Color(0xFF92400E))
+                                        Text(
+                                            text = item.respostaVerificacao ?: "Nenhuma resposta enviada ainda.",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (item.respostaVerificacao != null) Color(0xFF15803D) else Color.Gray
+                                        )
+                                    }
+                                }
+
+                                if (!isResolvido) {
+                                    Button(
+                                        onClick = {
+                                            viewModel.confirmarDevolucao(item) { sucesso ->
+                                                if (sucesso) {
+                                                    Toast.makeText(context, "Devolução confirmada! Status atualizado.", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
+                                    ) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Confirmar Devolução", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Botão de Chat (Desativado caso o status seja RESOLVIDO)
+                if (!isResolvido) {
                     Button(
                         onClick = onChatClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
                     ) {
@@ -316,5 +445,38 @@ fun ItemDetailsPage(
                 }
             }
         }
+    }
+}
+
+private fun abrirNoGoogleMaps(
+    context: Context,
+    setor: String?,
+    latitude: Double?,
+    longitude: Double?
+) {
+    if (latitude == null && longitude == null && setor.isNullOrBlank()) return
+
+    val label = setor?.ifBlank { "Local do Item" } ?: "Local do Item"
+
+    val intentUri = if (latitude != null && longitude != null) {
+        Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude(${Uri.encode(label)})")
+    } else {
+        Uri.parse("geo:0,0?q=${Uri.encode(setor)}")
+    }
+
+    val mapIntent = Intent(Intent.ACTION_VIEW, intentUri).apply {
+        setPackage("com.google.android.apps.maps")
+    }
+
+    try {
+        context.startActivity(mapIntent)
+    } catch (e: Exception) {
+        val webUrl = if (latitude != null && longitude != null) {
+            "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude"
+        } else {
+            "https://www.google.com/maps/search/?api=1&query=${Uri.encode(setor)}"
+        }
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(webUrl))
+        context.startActivity(browserIntent)
     }
 }
