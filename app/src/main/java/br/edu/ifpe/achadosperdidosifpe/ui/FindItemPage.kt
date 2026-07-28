@@ -1,12 +1,14 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -26,7 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import br.edu.ifpe.achadosperdidosifpe.model.Item
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
@@ -35,11 +37,11 @@ import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.fieldColors
 import coil.compose.SubcomposeAsyncImage
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -68,7 +70,6 @@ fun FindItemPage(
     var metodoDevolucao by remember { mutableStateOf<MetodoDevolucao?>(MetodoDevolucao.LEVAR_AO_SETOR) }
     var perguntaVerificacao by remember { mutableStateOf("") }
     var fotoUrl by remember { mutableStateOf<String?>(null) }
-
     var showMapDialog by remember { mutableStateOf(false) }
     var showPhotoOptions by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -130,7 +131,7 @@ fun FindItemPage(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF9F9F9))
+            .background(Color(0xFFF8FAFC))
     ) {
         Row(
             modifier = Modifier
@@ -142,9 +143,9 @@ fun FindItemPage(
             IconButton(onClick = onNavigateBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = IfpeGreen)
             }
-            Text("Encontrei um item", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Text("Encontrei um item", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
         }
-        HorizontalDivider(color = Color(0xFFEEEEEE))
+        HorizontalDivider(color = Color(0xFFE2E8F0))
 
         Column(
             modifier = Modifier
@@ -159,8 +160,8 @@ fun FindItemPage(
                     .fillMaxWidth()
                     .height(185.dp)
                     .clickable { if (!isSalvando) showPhotoOptions = true },
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.5.dp, Color(0xFFBBBBBB)),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.5.dp, Color(0xFFCBD5E1)),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -183,8 +184,9 @@ fun FindItemPage(
                         )
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(36.dp))
-                            Text("Clique para adicionar foto", fontSize = 13.sp, color = Color.Gray)
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, tint = IfpeGreenMid, modifier = Modifier.size(36.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("Clique para adicionar foto do item", fontSize = 13.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -194,7 +196,7 @@ fun FindItemPage(
                 OutlinedTextField(
                     value = nome,
                     onValueChange = { nome = it; if (nomeError != null) nomeError = null },
-                    placeholder = { Text("Ex: Caderno de Cálculo", color = Color.LightGray) },
+                    placeholder = { Text("Ex: Caderno de Cálculo", color = Color(0xFF94A3B8)) },
                     isError = nomeError != null,
                     supportingText = { nomeError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     modifier = Modifier.fillMaxWidth(),
@@ -214,7 +216,7 @@ fun FindItemPage(
                         value = categoriaSelecionada,
                         onValueChange = {},
                         readOnly = true,
-                        placeholder = { Text("Selecione...", color = Color.LightGray) },
+                        placeholder = { Text("Selecione...", color = Color(0xFF94A3B8)) },
                         isError = categoriaError != null,
                         supportingText = { categoriaError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaExpanded) },
@@ -229,7 +231,7 @@ fun FindItemPage(
                     ) {
                         categorias.forEach { categoria ->
                             DropdownMenuItem(
-                                text = { Text(categoria) },
+                                text = { Text(categoria, color = Color(0xFF0F172A)) },
                                 onClick = {
                                     categoriaSelecionada = categoria
                                     categoriaExpanded = false
@@ -245,7 +247,7 @@ fun FindItemPage(
                 OutlinedTextField(
                     value = corPrincipal,
                     onValueChange = { corPrincipal = it },
-                    placeholder = { Text("Ex: Azul escuro", color = Color.LightGray) },
+                    placeholder = { Text("Ex: Azul escuro", color = Color(0xFF94A3B8)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -255,31 +257,23 @@ fun FindItemPage(
             }
 
             FormField(label = "Onde encontrou? *", icon = Icons.Default.LocationOn) {
-                OutlinedTextField(
-                    value = localizacao,
-                    onValueChange = { localizacao = it; if (localizacaoError != null) localizacaoError = null },
-                    placeholder = { Text("Selecionar no mapa ou digitar...", color = Color.LightGray) },
+                LocationFieldWithMapPreview(
+                    localizacao = localizacao,
                     isError = localizacaoError != null,
-                    supportingText = { localizacaoError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
-                    trailingIcon = {
-                        IconButton(
-                            enabled = !isSalvando,
-                            onClick = {
-                                if (!hasLocationPermission) {
-                                    permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                                } else {
-                                    showMapDialog = true
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Map, contentDescription = "Abrir mapa", tint = IfpeGreenMid)
+                    errorMessage = localizacaoError,
+                    enabled = !isSalvando,
+                    onOpenMapDialog = {
+                        if (!hasLocationPermission) {
+                            permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                        } else {
+                            showMapDialog = true
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = fieldColors(),
-                    singleLine = true,
-                    enabled = !isSalvando
+                    onOpenGoogleMaps = { abrirNoGoogleMaps(context, localizacao) },
+                    onClearLocation = {
+                        localizacao = ""
+                        localizacaoError = null
+                    }
                 )
             }
 
@@ -287,7 +281,7 @@ fun FindItemPage(
                 OutlinedTextField(
                     value = data,
                     onValueChange = { data = it; if (dataError != null) dataError = null },
-                    placeholder = { Text("dd/mm/aaaa", color = Color.LightGray) },
+                    placeholder = { Text("dd/mm/aaaa", color = Color(0xFF94A3B8)) },
                     isError = dataError != null,
                     supportingText = { dataError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     trailingIcon = {
@@ -327,7 +321,7 @@ fun FindItemPage(
                 OutlinedTextField(
                     value = perguntaVerificacao,
                     onValueChange = { perguntaVerificacao = it },
-                    placeholder = { Text("Ex: Qual adesivo está colado na capa?", color = Color.LightGray) },
+                    placeholder = { Text("Ex: Qual adesivo está colado na capa?", color = Color(0xFF94A3B8)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -340,7 +334,7 @@ fun FindItemPage(
                 OutlinedTextField(
                     value = caracteristicas,
                     onValueChange = { caracteristicas = it },
-                    placeholder = { Text("Ex: Possui risco vermelho no lado esquerdo...", color = Color.LightGray) },
+                    placeholder = { Text("Ex: Possui risco vermelho no lado esquerdo...", color = Color(0xFF94A3B8)) },
                     modifier = Modifier.fillMaxWidth().height(96.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -353,7 +347,7 @@ fun FindItemPage(
                 OutlinedTextField(
                     value = descricao,
                     onValueChange = { descricao = it },
-                    placeholder = { Text("Qualquer outra informação relevante...", color = Color.LightGray) },
+                    placeholder = { Text("Qualquer outra informação relevante...", color = Color(0xFF94A3B8)) },
                     modifier = Modifier.fillMaxWidth().height(80.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = fieldColors(),
@@ -388,6 +382,7 @@ fun FindItemPage(
                             fotoUrl = null,
                             data = parsedDate
                         )
+
                         viewModel.addItemComFoto(context, item, fotoUrl) { sucesso ->
                             isSalvando = false
                             if (sucesso) {
@@ -439,36 +434,255 @@ fun FindItemPage(
     if (showPhotoOptions) {
         AlertDialog(
             onDismissRequest = { showPhotoOptions = false },
-            title = { Text("Adicionar Foto") },
+            title = { Text("Adicionar Foto", fontWeight = FontWeight.Bold) },
             text = { Text("Escolha a origem da foto do item.") },
-            confirmButton = { TextButton(onClick = { showPhotoOptions = false; cameraLauncher.launch(null) }) { Text("Câmera", color = IfpeGreen) } },
-            dismissButton = { TextButton(onClick = { showPhotoOptions = false; galleryLauncher.launch("image/*") }) { Text("Galeria", color = IfpeGreen) } }
+            confirmButton = { TextButton(onClick = { showPhotoOptions = false; cameraLauncher.launch(null) }) { Text("Câmera", color = IfpeGreen, fontWeight = FontWeight.Bold) } },
+            dismissButton = { TextButton(onClick = { showPhotoOptions = false; galleryLauncher.launch("image/*") }) { Text("Galeria", color = IfpeGreen, fontWeight = FontWeight.Bold) } }
         )
     }
 
     if (showMapDialog) {
-        Dialog(onDismissRequest = { showMapDialog = false }) {
-            Card(modifier = Modifier.fillMaxWidth().height(450.dp), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        val cameraPositionState = rememberCameraPositionState()
-                        GoogleMap(
-                            modifier = Modifier.fillMaxSize(),
-                            cameraPositionState = cameraPositionState,
-                            properties = MapProperties(isMyLocationEnabled = hasLocationPermission),
-                            uiSettings = MapUiSettings(myLocationButtonEnabled = true),
-                            onMapClick = { latLng ->
-                                localizacao = "Lat: ${String.format(Locale.US, "%.4f", latLng.latitude)}, Lng: ${String.format(Locale.US, "%.4f", latLng.longitude)}"
-                                if (localizacaoError != null) localizacaoError = null
-                                showMapDialog = false
+        LocationSelectionDialog(
+            initialLocation = localizacao,
+            hasLocationPermission = hasLocationPermission,
+            onRequestPermission = {
+                permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            },
+            onDismissRequest = { showMapDialog = false },
+            onLocationSelected = { loc ->
+                localizacao = loc
+                if (localizacaoError != null) localizacaoError = null
+                showMapDialog = false
+            }
+        )
+    }
+}
+
+private fun abrirNoGoogleMaps(context: Context, localizacao: String) {
+    if (localizacao.isBlank()) return
+
+    val intentUri = if (localizacao.contains("Lat:") && localizacao.contains("Lng:")) {
+        try {
+            val lat = localizacao.substringAfter("Lat:").substringBefore(",").substringBefore(")").trim().toDouble()
+            val lng = localizacao.substringAfter("Lng:").substringBefore(")").trim().toDouble()
+            Uri.parse("geo:$lat,$lng?q=$lat,$lng(Local+do+Item)")
+        } catch (e: Exception) {
+            Uri.parse("geo:0,0?q=${Uri.encode(localizacao)}")
+        }
+    } else {
+        Uri.parse("geo:0,0?q=${Uri.encode(localizacao)}")
+    }
+
+    val mapIntent = Intent(Intent.ACTION_VIEW, intentUri).apply {
+        setPackage("com.google.android.apps.maps")
+    }
+
+    try {
+        context.startActivity(mapIntent)
+    } catch (e: Exception) {
+        val browserIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(localizacao)}")
+        )
+        context.startActivity(browserIntent)
+    }
+}
+
+@Composable
+private fun LocationFieldWithMapPreview(
+    localizacao: String,
+    isError: Boolean,
+    errorMessage: String?,
+    enabled: Boolean,
+    onOpenMapDialog: () -> Unit,
+    onOpenGoogleMaps: () -> Unit,
+    onClearLocation: () -> Unit
+) {
+    val latLng = remember(localizacao) {
+        if (localizacao.contains("Lat:") && localizacao.contains("Lng:")) {
+            try {
+                val lat = localizacao.substringAfter("Lat:").substringBefore(",").substringBefore(")").trim().toDouble()
+                val lng = localizacao.substringAfter("Lng:").substringBefore(")").trim().toDouble()
+                LatLng(lat, lng)
+            } catch (e: Exception) { null }
+        } else null
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (localizacao.isNotBlank()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, if (isError) MaterialTheme.colorScheme.error else Color(0xFFCBD5E1)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column {
+                    if (latLng != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(140.dp)
+                                .clickable { onOpenGoogleMaps() }
+                        ) {
+                            val cameraPosState = rememberCameraPositionState {
+                                position = CameraPosition.fromLatLngZoom(latLng, 16f)
                             }
-                        )
+                            val markerState = rememberMarkerState(position = latLng)
+
+                            GoogleMap(
+                                modifier = Modifier.fillMaxSize(),
+                                cameraPositionState = cameraPosState,
+                                uiSettings = MapUiSettings(
+                                    zoomControlsEnabled = false,
+                                    scrollGesturesEnabled = false,
+                                    zoomGesturesEnabled = false,
+                                    tiltGesturesEnabled = false,
+                                    rotationGesturesEnabled = false,
+                                    myLocationButtonEnabled = false
+                                )
+                            ) {
+                                Marker(
+                                    state = markerState,
+                                    title = "Local Selecionado"
+                                )
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .align(Alignment.TopEnd),
+                                color = Color.Black.copy(alpha = 0.65f),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = "Abrir no Maps",
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                     }
-                    Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showMapDialog = false }) { Text("Cancelar", color = IfpeGreen) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = IfpeGreenMid,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = localizacao,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0F172A),
+                                maxLines = 2
+                            )
+                        }
+                        Row {
+                            IconButton(onClick = onOpenMapDialog, enabled = enabled) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Alterar local",
+                                    tint = IfpeGreen
+                                )
+                            }
+                            IconButton(onClick = onClearLocation, enabled = enabled) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Remover local",
+                                    tint = Color(0xFFDC2626)
+                                )
+                            }
+                        }
                     }
                 }
             }
+        } else {
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                readOnly = true,
+                placeholder = { Text("Clique no ícone de mapa para escolher...", color = Color(0xFF94A3B8)) },
+                isError = isError,
+                supportingText = { errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+                trailingIcon = {
+                    IconButton(onClick = onOpenMapDialog, enabled = enabled) {
+                        Icon(Icons.Default.Map, contentDescription = "Abrir mapa", tint = IfpeGreenMid)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = enabled) { onOpenMapDialog() },
+                shape = RoundedCornerShape(10.dp),
+                colors = fieldColors(),
+                singleLine = true,
+                enabled = enabled
+            )
         }
+
+        if (errorMessage != null && localizacao.isNotBlank()) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FormField(
+    label: String,
+    icon: ImageVector? = null,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = IfpeGreenMid,
+                    modifier = Modifier.size(15.dp)
+                )
+            }
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF334155)
+            )
+        }
+        content()
     }
 }

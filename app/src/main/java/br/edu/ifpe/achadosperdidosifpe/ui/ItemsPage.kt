@@ -1,5 +1,6 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
+import android.util.Base64
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Status
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.fieldColors
 import coil.compose.SubcomposeAsyncImage
 
 private val GreenFilter = Color(0xFF00913F)
@@ -42,15 +44,12 @@ fun ItemsPage(
 ) {
     val context = LocalContext.current
     val currentUserId = viewModel.user?.id
-
     var searchText by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
     var currentFilter by remember { mutableStateOf(ItemFilter()) }
     var showFilterSheet by remember { mutableStateOf(false) }
-
     var itemParaDeletar by remember { mutableStateOf<Item?>(null) }
     var itemParaEditar by remember { mutableStateOf<Item?>(null) }
-
     val scrollState = rememberScrollState()
 
     val itensFiltrados = viewModel.items.filter { item ->
@@ -66,7 +65,6 @@ fun ItemsPage(
         val matchesTipo = currentFilter.tipo == null || item.tipo == currentFilter.tipo
         val matchesStatus = currentFilter.status == null || item.status == currentFilter.status
         val matchesCor = currentFilter.cor == null || item.corPrincipal?.contains(currentFilter.cor!!, ignoreCase = true) == true
-
         matchesSearch && matchesTab && matchesCategoria && matchesTipo && matchesStatus && matchesCor
     }
 
@@ -75,11 +73,7 @@ fun ItemsPage(
             .fillMaxSize()
             .background(Color(0xFFF8FAFC))
     ) {
-        // --- HEADER TIPO CATÁLOGO DE ITENS ---
-        Surface(
-            color = Color.White,
-            shadowElevation = 2.dp
-        ) {
+        Surface(color = Color.White, shadowElevation = 2.dp) {
             Column {
                 Row(
                     modifier = Modifier
@@ -88,17 +82,8 @@ fun ItemsPage(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text(
-                            text = "Explorar Itens",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Text(
-                            text = "${itensFiltrados.size} item(ns) encontrado(s)",
-                            fontSize = 12.sp,
-                            color = Color(0xFF64748B)
-                        )
+                        Text("Explorar Itens", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        Text("${itensFiltrados.size} item(ns) encontrado(s)", fontSize = 12.sp, color = Color(0xFF64748B))
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     FilledTonalIconButton(
@@ -107,48 +92,24 @@ fun ItemsPage(
                             containerColor = if (currentFilter.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9)
                         )
                     ) {
-                        BadgedBox(
-                            badge = {
-                                if (currentFilter.isActive) {
-                                    Badge(containerColor = GreenFilter)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FilterList,
-                                contentDescription = "Filtrar Itens",
-                                tint = if (currentFilter.isActive) GreenFilter else Color(0xFF475569)
-                            )
+                        BadgedBox(badge = { if (currentFilter.isActive) Badge(containerColor = GreenFilter) }) {
+                            Icon(Icons.Default.FilterList, contentDescription = "Filtrar", tint = if (currentFilter.isActive) GreenFilter else Color(0xFF475569))
                         }
                     }
                 }
-
-                // Campo de Busca do Catálogo
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     OutlinedTextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        placeholder = {
-                            Text("Filtrar por nome ou categoria...", fontSize = 13.sp, color = Color(0xFF94A3B8))
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = GreenFilter)
-                        },
+                        placeholder = { Text("Filtrar por nome ou categoria...", fontSize = 13.sp, color = Color(0xFF94A3B8)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = GreenFilter) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = GreenFilter,
-                            unfocusedBorderColor = Color(0xFFE2E8F0),
-                            focusedContainerColor = Color(0xFFF8FAFC),
-                            unfocusedContainerColor = Color(0xFFF8FAFC)
-                        )
+                        colors = fieldColors()
                     )
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // Abas de Filtro
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = Color.White,
@@ -164,39 +125,19 @@ fun ItemsPage(
                         }
                     }
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Todos", fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
-                        selectedContentColor = GreenFilter,
-                        unselectedContentColor = Color(0xFF64748B)
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Perdidos", fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
-                        selectedContentColor = GreenFilter,
-                        unselectedContentColor = Color(0xFF64748B)
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = { Text("Encontrados", fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
-                        selectedContentColor = GreenFilter,
-                        unselectedContentColor = Color(0xFF64748B)
-                    )
-                    Tab(
-                        selected = selectedTab == 3,
-                        onClick = { selectedTab = 3 },
-                        text = { Text("Meus Itens", fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
-                        selectedContentColor = GreenFilter,
-                        unselectedContentColor = Color(0xFF64748B)
-                    )
+                    listOf("Todos", "Perdidos", "Encontrados", "Meus Itens").forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(title, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp) },
+                            selectedContentColor = GreenFilter,
+                            unselectedContentColor = Color(0xFF64748B)
+                        )
+                    }
                 }
             }
         }
 
-        // --- LISTA DO CATÁLOGO ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -206,26 +147,8 @@ fun ItemsPage(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (itensFiltrados.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Nenhum item encontrado",
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF334155),
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Tente alterar os filtros ou a aba selecionada.",
-                            color = Color(0xFF64748B),
-                            fontSize = 13.sp
-                        )
-                    }
+                Box(modifier = Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                    Text("Nenhum item encontrado", fontWeight = FontWeight.Bold, color = Color(0xFF64748B), fontSize = 15.sp)
                 }
             } else {
                 itensFiltrados.forEach { item ->
@@ -249,11 +172,10 @@ fun ItemsPage(
         )
     }
 
-    // Diálogo de Exclusão de Item
     itemParaDeletar?.let { item ->
         AlertDialog(
             onDismissRequest = { itemParaDeletar = null },
-            title = { Text("Excluir Item") },
+            title = { Text("Excluir Item", fontWeight = FontWeight.Bold) },
             text = { Text("Tem certeza que deseja excluir '${item.nome}'? Esta ação é irreversível.") },
             confirmButton = {
                 Button(
@@ -262,21 +184,20 @@ fun ItemsPage(
                         Toast.makeText(context, "Item removido com sucesso!", Toast.LENGTH_SHORT).show()
                         itemParaDeletar = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
-                ) { Text("Excluir", color = Color.White) }
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) { Text("Excluir", color = Color.White, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { itemParaDeletar = null }) { Text("Cancelar", color = Color.Gray) }
+                TextButton(onClick = { itemParaDeletar = null }) { Text("Cancelar", color = Color(0xFF64748B)) }
             }
         )
     }
 
-    // Diálogo de Edição de Item
     itemParaEditar?.let { item ->
         EditItemDialog(
             item = item,
             onDismiss = { itemParaEditar = null },
-            onSave = { itemEditado: Item ->
+            onSave = { itemEditado ->
                 viewModel.addItem(itemEditado)
                 Toast.makeText(context, "Item atualizado com sucesso!", Toast.LENGTH_SHORT).show()
                 itemParaEditar = null
@@ -293,11 +214,12 @@ fun ItemsPageCard(
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
+    // Decodifica a foto se ela for uma String Base64 (data:image/...)
     val imageModel = remember(item.fotoUrl) {
         if (item.fotoUrl?.startsWith("data:image") == true) {
             try {
                 val base64String = item.fotoUrl.substringAfter(",")
-                android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                Base64.decode(base64String, Base64.DEFAULT)
             } catch (e: Exception) {
                 item.fotoUrl
             }
@@ -315,14 +237,12 @@ fun ItemsPageCard(
         border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
+            modifier = Modifier.fillMaxWidth().padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(68.dp)
                     .background(Color(0xFFF1F5F9), shape = RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
@@ -333,118 +253,38 @@ fun ItemsPageCard(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = IfpeGreen,
-                                    strokeWidth = 2.dp
-                                )
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = IfpeGreen, strokeWidth = 2.dp)
                             }
                         },
                         error = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.BrokenImage,
-                                    contentDescription = "Erro ao carregar imagem",
-                                    tint = Color.LightGray,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.BrokenImage, contentDescription = null, tint = Color.LightGray)
                             }
                         }
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.Inbox,
-                        contentDescription = "Sem imagem",
-                        tint = Color.LightGray,
-                        modifier = Modifier.size(28.dp)
-                    )
+                    Icon(Icons.Default.Inbox, contentDescription = null, tint = Color.LightGray)
                 }
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val isPerdido = item.tipo == Tipo.PERDIDO
-                    val tagBgColor = if (isPerdido) Color(0xFFFEE2E2) else Color(0xFFDCFCE7)
-                    val tagTextColor = if (isPerdido) Color(0xFF991B1B) else Color(0xFF166534)
-                    val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
-
-                    Surface(
-                        color = tagBgColor,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = tagText,
-                            color = tagTextColor,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                Text(
-                    text = item.nome,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = Color(0xFF0F172A)
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Localização",
-                        tint = Color(0xFF94A3B8),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = item.localizacao,
-                        color = Color(0xFF64748B),
-                        fontSize = 12.sp,
-                        maxLines = 1
-                    )
-                }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(item.nome, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                Text(item.localizacao, fontSize = 12.sp, color = Color(0xFF64748B), maxLines = 1)
             }
-
             if (showEditDelete) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onEditClick) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar Item", tint = IfpeGreen)
-                    }
-                    IconButton(onClick = onDeleteClick) {
-                        Icon(Icons.Default.Delete, contentDescription = "Excluir Item", tint = Color(0xFFD32F2F))
-                    }
+                Row {
+                    IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, contentDescription = "Editar", tint = IfpeGreen) }
+                    IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, contentDescription = "Excluir", tint = Color(0xFFDC2626)) }
                 }
             } else {
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "Ver detalhes",
-                    tint = Color(0xFF94A3B8),
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color(0xFF94A3B8))
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
     var nome by remember { mutableStateOf(item.nome) }
@@ -454,14 +294,20 @@ fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Editar Item", fontWeight = FontWeight.Bold) },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
+        title = {
+            Text("Editar Item", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0F172A))
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = nome,
                     onValueChange = { nome = it },
-                    label = { Text("Nome") },
+                    label = { Text("Nome do Item") },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors(),
                     singleLine = true
                 )
                 OutlinedTextField(
@@ -469,21 +315,35 @@ fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
                     onValueChange = { localizacao = it },
                     label = { Text("Localização") },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = perguntaVerificacao,
                     onValueChange = { perguntaVerificacao = it },
                     label = { Text("Pergunta de Verificação") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors()
                 )
-                Text("Status do Item", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Status do Item", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Status.entries.forEach { status ->
+                        val isSelected = statusSelecionado == status
                         FilterChip(
-                            selected = statusSelecionado == status,
+                            selected = isSelected,
                             onClick = { statusSelecionado = status },
-                            label = { Text(status.name, fontSize = 10.sp) }
+                            label = { Text(status.name, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = IfpeGreen,
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFFF1F5F9),
+                                labelColor = Color(0xFF334155)
+                            )
                         )
                     }
                 }
@@ -500,11 +360,12 @@ fun EditItemDialog(item: Item, onDismiss: () -> Unit, onSave: (Item) -> Unit) {
                     )
                     onSave(itemAtualizado)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)
-            ) { Text("Salvar") }
+                colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen),
+                shape = RoundedCornerShape(8.dp)
+            ) { Text("Salvar Alterações", color = Color.White, fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color.Gray) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         }
     )
 }

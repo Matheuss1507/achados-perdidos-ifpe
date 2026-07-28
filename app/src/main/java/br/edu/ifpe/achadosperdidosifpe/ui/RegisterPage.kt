@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -33,6 +34,8 @@ import br.edu.ifpe.achadosperdidosifpe.db.fb.DatabaseProvider
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBUser
 import br.edu.ifpe.achadosperdidosifpe.model.User
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
+import br.edu.ifpe.achadosperdidosifpe.ui.theme.fieldColors
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
@@ -369,5 +372,35 @@ fun RegisterPage(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FormField(
+    label: String,
+    icon: ImageVector? = null,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = IfpeGreenMid,
+                    modifier = Modifier.size(15.dp)
+                )
+            }
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF334155)
+            )
+        }
+        content()
     }
 }
