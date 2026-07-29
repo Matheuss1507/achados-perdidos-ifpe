@@ -49,7 +49,9 @@ fun HomePage(
     var searchText by remember { mutableStateOf("") }
     var currentFilter by remember { mutableStateOf(ItemFilter()) }
     var showFilterSheet by remember { mutableStateOf(false) }
+    var showNotificationsSheet by remember { mutableStateOf(false) }
 
+    val unreadCount = viewModel.unreadNotificationCount
     val scrollState = rememberScrollState()
 
     val filteredItems = viewModel.items.filter { item ->
@@ -59,7 +61,6 @@ fun HomePage(
         val matchesTipo = currentFilter.tipo == null || item.tipo == currentFilter.tipo
         val matchesStatus = currentFilter.status == null || item.status == currentFilter.status
         val matchesCor = currentFilter.cor == null || item.corPrincipal?.contains(currentFilter.cor!!, ignoreCase = true) == true
-
         matchesSearch && matchesCategoria && matchesTipo && matchesStatus && matchesCor
     }
 
@@ -69,7 +70,6 @@ fun HomePage(
             .background(Color(0xFFF8FAFC))
             .verticalScroll(scrollState)
     ) {
-        // --- HERO HEADER INSTITUCIONAL ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -90,22 +90,34 @@ fun HomePage(
                         contentDescription = "Logo IFPE Pernambuco",
                         modifier = Modifier.height(48.dp)
                     )
+
                     IconButton(
-                        onClick = { },
+                        onClick = { showNotificationsSheet = true },
                         modifier = Modifier
                             .size(40.dp)
                             .background(Color.White.copy(alpha = 0.15f), CircleShape)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsNone,
-                            contentDescription = "Notificações",
-                            tint = Color.White
-                        )
+                        BadgedBox(
+                            badge = {
+                                if (unreadCount > 0) {
+                                    Badge(
+                                        containerColor = Color(0xFFDC2626),
+                                        contentColor = Color.White
+                                    ) {
+                                        Text(text = if (unreadCount > 99) "99+" else "$unreadCount", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = "Notificações",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
-
                 Spacer(modifier = Modifier.height(20.dp))
-
                 Text(
                     text = "Início & Painel",
                     fontSize = 12.sp,
@@ -125,10 +137,8 @@ fun HomePage(
                     fontSize = 13.sp,
                     color = Color.White.copy(alpha = 0.9f)
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Busca Rápida na Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -153,7 +163,6 @@ fun HomePage(
                             unfocusedContainerColor = Color.White
                         )
                     )
-
                     OutlinedButton(
                         onClick = { showFilterSheet = true },
                         shape = RoundedCornerShape(12.dp),
@@ -186,14 +195,12 @@ fun HomePage(
             }
         }
 
-        // --- CONTEÚDO PRINCIPAL DA HOME ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Ações Rápidas
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     text = "Ações Rápidas",
@@ -201,7 +208,6 @@ fun HomePage(
                     fontSize = 16.sp,
                     color = Color(0xFF1E293B)
                 )
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -240,7 +246,6 @@ fun HomePage(
                             Text("Cadastre e procure", fontSize = 11.sp, color = Color(0xFFB91C1C))
                         }
                     }
-
                     Card(
                         onClick = onFindItem,
                         modifier = Modifier
@@ -278,7 +283,6 @@ fun HomePage(
                 }
             }
 
-            // Atividades Recentes
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -291,7 +295,6 @@ fun HomePage(
                         fontSize = 17.sp,
                         color = Color(0xFF1E293B)
                     )
-
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable { onSeeAllClick() }
@@ -348,6 +351,23 @@ fun HomePage(
             onApplyFilter = { newFilter -> currentFilter = newFilter }
         )
     }
+
+    if (showNotificationsSheet) {
+        NotificationsBottomSheet(
+            notifications = viewModel.notifications,
+            onDismissRequest = { showNotificationsSheet = false },
+            onNotificationClick = { notification ->
+                viewModel.markNotificationAsRead(notification.id)
+                showNotificationsSheet = false
+                if (notification.itemId.isNotBlank()) {
+                    onItemClick(notification.itemId)
+                }
+            },
+            onMarkAllAsRead = {
+                viewModel.markAllNotificationsAsRead()
+            }
+        )
+    }
 }
 
 @Composable
@@ -364,7 +384,6 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
             item.fotoUrl
         }
     }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -426,9 +445,7 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -444,7 +461,6 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     val tagBgColor = if (isPerdido) Color(0xFFFEE2E2) else Color(0xFFDCFCE7)
                     val tagTextColor = if (isPerdido) Color(0xFF991B1B) else Color(0xFF166534)
                     val tagText = if (isPerdido) "PERDIDO" else "ENCONTRADO"
-
                     Surface(
                         color = tagBgColor,
                         shape = RoundedCornerShape(4.dp)
@@ -458,14 +474,12 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                         )
                     }
                 }
-
                 Text(
                     text = item.nome,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = Color(0xFF0F172A)
                 )
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
@@ -482,9 +496,7 @@ fun ItemCard(item: Item, onClick: () -> Unit) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(8.dp))
-
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Ver detalhes",
