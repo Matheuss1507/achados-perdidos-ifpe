@@ -69,20 +69,19 @@ fun RegisterPage(
         "Contabilidade",
         "Outro"
     )
+
     val scrollState = rememberScrollState()
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
 
     fun validarFormulario(): Boolean {
         var isValid = true
-
         if (nomeCompleto.isBlank()) {
             nomeError = "Digite seu nome completo"
             isValid = false
         } else {
             nomeError = null
         }
-
         if (email.isBlank()) {
             emailError = "E-mail é obrigatório"
             isValid = false
@@ -92,14 +91,12 @@ fun RegisterPage(
         } else {
             emailError = null
         }
-
         if (cursoSelecionado.isBlank()) {
             cursoError = "Selecione seu curso/setor"
             isValid = false
         } else {
             cursoError = null
         }
-
         if (senha.isBlank()) {
             senhaError = "Senha é obrigatória"
             isValid = false
@@ -109,7 +106,6 @@ fun RegisterPage(
         } else {
             senhaError = null
         }
-
         if (confirmarSenha.isBlank()) {
             confirmarSenhaError = "Confirme a senha"
             isValid = false
@@ -119,7 +115,6 @@ fun RegisterPage(
         } else {
             confirmarSenhaError = null
         }
-
         return isValid
     }
 
@@ -150,6 +145,7 @@ fun RegisterPage(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
+
         HorizontalDivider(color = Color(0xFFEEEEEE))
 
         Column(
@@ -327,13 +323,14 @@ fun RegisterPage(
             Button(
                 onClick = {
                     if (!validarFormulario()) return@Button
-
                     isLoading = true
                     Firebase.auth.createUserWithEmailAndPassword(email.trim(), senha)
                         .addOnCompleteListener { task ->
-                            isLoading = false
                             if (task.isSuccessful) {
-                                val uid = task.result?.user?.uid ?: return@addOnCompleteListener
+                                val uid = task.result?.user?.uid ?: run {
+                                    isLoading = false
+                                    return@addOnCompleteListener
+                                }
                                 val novoUsuario = User(
                                     id = uid,
                                     nome = nomeCompleto,
@@ -342,10 +339,23 @@ fun RegisterPage(
                                     curso = cursoSelecionado,
                                     tipo = "aluno"
                                 )
+                                // Garante a gravação do Firestore antes de fechar a tela
                                 DatabaseProvider.database.register(novoUsuario.toFBUser())
-                                Toast.makeText(context, "Cadastro realizado com sucesso!", Toast.LENGTH_LONG).show()
-                                onNavigateBack()
+                                    .addOnSuccessListener {
+                                        isLoading = false
+                                        Toast.makeText(context, "Cadastro realizado com sucesso!", Toast.LENGTH_LONG).show()
+                                        onNavigateBack()
+                                    }
+                                    .addOnFailureListener { exception ->
+                                        isLoading = false
+                                        Toast.makeText(
+                                            context,
+                                            "Erro ao salvar perfil: ${exception.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                             } else {
+                                isLoading = false
                                 Toast.makeText(
                                     context,
                                     "Falha no cadastro: ${task.exception?.message}",

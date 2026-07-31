@@ -35,6 +35,13 @@ import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Tipo
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import coil.compose.SubcomposeAsyncImage
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +53,25 @@ fun HomePage(
     onFindItem: () -> Unit = {},
     onSeeAllClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val notificationPermissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { }
+
+        LaunchedEffect(Unit) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasPermission) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
     var searchText by remember { mutableStateOf("") }
     var currentFilter by remember { mutableStateOf(ItemFilter()) }
     var showFilterSheet by remember { mutableStateOf(false) }

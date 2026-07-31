@@ -1,8 +1,6 @@
 package br.edu.ifpe.achadosperdidosifpe.ui
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,10 +8,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
@@ -29,11 +28,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import br.edu.ifpe.achadosperdidosifpe.db.fb.DatabaseProvider
 import br.edu.ifpe.achadosperdidosifpe.db.fb.FBChat
-import br.edu.ifpe.achadosperdidosifpe.db.fb.FBMessage
-import br.edu.ifpe.achadosperdidosifpe.model.Chat
 import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
-import br.edu.ifpe.achadosperdidosifpe.model.Message
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 import com.google.android.gms.location.LocationServices
@@ -51,41 +48,27 @@ fun ChatPage(
     chatIdInicial: String? = null,
     onBackClick: () -> Unit = {}
 ) {
-
-
-    var chatSelecionadoId by remember { mutableStateOf(chatIdInicial) }
-
-
+    val chatInicialVM = remember { viewModel.consumirChatInicial() }
+    var chatSelecionadoId by remember(chatIdInicial, chatInicialVM) {
+        mutableStateOf(chatIdInicial ?: chatInicialVM)
+    }
 
     val context = LocalContext.current
     val currentUserId = Firebase.auth.currentUser?.uid ?: ""
-
     val formatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-
-
-
     var mensagemAtual by remember { mutableStateOf("") }
-    val estadoRolagem = rememberScrollState()
 
+    val listState = rememberLazyListState()
     val fbChats by remember { derivedStateOf { viewModel.chats } }
     val fbMessages by remember { derivedStateOf { viewModel.messages } }
-
-    LaunchedEffect(chatSelecionadoId, fbChats.size) {
-        android.util.Log.d("CHAT_DEBUG", "chatSelecionadoId: $chatSelecionadoId")
-        android.util.Log.d("CHAT_DEBUG", "fbChats size: ${fbChats.size}")
-        android.util.Log.d("CHAT_DEBUG", "chatAtualFB: ${fbChats.find { it.id == chatSelecionadoId }}")
-    }
-
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    // Carrega lista de chats ao entrar na tela
+    // Garante escuta contínua de conversas do usuário
     LaunchedEffect(Unit) {
-        if (chatIdInicial == null) {
-            viewModel.startListeningChats()
-        }
+        viewModel.startListeningChats()
     }
 
-    // Carrega mensagens ao selecionar um chat
+    // Gerencia o listener das mensagens do chat selecionado
     LaunchedEffect(chatSelecionadoId) {
         if (chatSelecionadoId != null) {
             viewModel.startListeningMessages(chatSelecionadoId!!)
@@ -94,18 +77,48 @@ fun ChatPage(
         }
     }
 
-    // Auto-scroll ao receber nova mensagem
+    // Auto-scroll para a última mensagem
     LaunchedEffect(fbMessages.size) {
-        estadoRolagem.animateScrollTo(estadoRolagem.maxValue)
+        if (fbMessages.isNotEmpty()) {
+            listState.animateScrollToItem(fbMessages.size - 1)
+        }
     }
 
+    // Extrai o chat do estado global ou cria objeto temporário resiliente
     val chatAtualFB = if (chatSelecionadoId != null) {
-        fbChats.find { it.id == chatSelecionadoId } ?: FBChat(
-            id = chatSelecionadoId!!,
-            itemId = chatSelecionadoId!!.split("_").firstOrNull() ?: "",
-            participants = emptyList()
-        )
+        fbChats.find { it.id == chatSelecionadoId } ?: run {
+            val partes = chatSelecionadoId!!.split("_")
+            val itemId = partes.firstOrNull() ?: ""
+            val participantes = if (partes.size >= 3) partes.drop(1) else emptyList()
+            FBChat(
+                id = chatSelecionadoId!!,
+                itemId = itemId,
+                participants = participantes
+            )
+        }
     } else null
+
+    // Identifica o ID do destinatário
+    val outroParticipanteId = remember(chatAtualFB, currentUserId) {
+        chatAtualFB?.participants?.firstOrNull { it != currentUserId } ?: ""
+    }
+
+    // Busca o nome do destinatário no banco
+    var nomeDestinatario by remember(outroParticipanteId) { mutableStateOf("") }
+
+    LaunchedEffect(outroParticipanteId) {
+        if (outroParticipanteId.isNotBlank()) {
+            DatabaseProvider.database.getUser(outroParticipanteId) { user ->
+                if (user != null && user.nome.isNotBlank()) {
+                    nomeDestinatario = user.nome
+                } else {
+                    nomeDestinatario = "Usuário"
+                }
+            }
+        } else {
+            nomeDestinatario = ""
+        }
+    }
 
     @SuppressLint("MissingPermission")
     fun capturarEEnviarLocalizacao() {
@@ -141,11 +154,13 @@ fun ChatPage(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
-                            Text(
-                                text = "Item: ${chatAtualFB.itemId}",
-                                color = Color.White,
-                                fontSize = 12.sp
-                            )
+                            if (nomeDestinatario.isNotBlank()) {
+                                Text(
+                                    text = nomeDestinatario,
+                                    color = Color.White,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     } else {
                         Text("Mensagens", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -163,9 +178,8 @@ fun ChatPage(
             )
         }
     ) { innerPadding ->
-
         if (chatAtualFB != null) {
-            // Tela de conversa
+            // Conversa Ativa
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -175,7 +189,6 @@ fun ChatPage(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F0FE)),
@@ -192,14 +205,15 @@ fun ChatPage(
                         }
                     }
 
-                    Column(
-                        modifier = Modifier.weight(1f).verticalScroll(estadoRolagem)
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-
-                        fbMessages.forEach { msg ->
+                        items(fbMessages, key = { it.id }) { msg ->
                             val isMe = msg.senderId == currentUserId
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
                             ) {
                                 Card(
@@ -217,9 +231,7 @@ fun ChatPage(
                                             color = if (isMe) Color.White else Color.Black
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
-
                                         Text(
-
                                             text = formatter.format(Date(msg.timestamp)),
                                             fontSize = 11.sp,
                                             color = if (isMe) Color.White.copy(alpha = 0.7f) else Color.Gray,
@@ -234,10 +246,10 @@ fun ChatPage(
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(top = 16.dp).clickable {
                             val granted = ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.ACCESS_FINE_LOCATION
-                            ) == PackageManager.PERMISSION_GRANTED
+                                context, android.Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                             if (granted) capturarEEnviarLocalizacao()
-                            else locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            else locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
                         },
                         border = BorderStroke(1.dp, Color(0xFFDDDDDD)),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -291,9 +303,8 @@ fun ChatPage(
                     }
                 }
             }
-
         } else {
-            // Lista de chats
+            // Lista de Conversas
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -305,12 +316,28 @@ fun ChatPage(
                         Text("Nenhuma conversa ainda.", color = Color.Gray, fontSize = 14.sp)
                     }
                 } else {
-
                     fbChats.forEach { chat ->
-                        val outroParticipante = chat.participants.firstOrNull { it != currentUserId } ?: ""
-// busca o nome se for o usuário atual
-                        val nomeExibido = "Usuário"
-                        val iniciais = "US"
+                        val outroParticipanteIdCard = chat.participants.firstOrNull { it != currentUserId } ?: ""
+                        var nomeExibido by remember(outroParticipanteIdCard) { mutableStateOf("Usuário") }
+
+                        LaunchedEffect(outroParticipanteIdCard) {
+                            if (outroParticipanteIdCard.isNotBlank()) {
+                                DatabaseProvider.database.getUser(outroParticipanteIdCard) { user ->
+                                    if (user != null && user.nome.isNotBlank()) {
+                                        nomeExibido = user.nome
+                                    }
+                                }
+                            }
+                        }
+
+                        val iniciais = remember(nomeExibido) {
+                            val partes = nomeExibido.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+                            when {
+                                partes.size >= 2 -> "${partes.first().first().uppercase()}${partes.last().first().uppercase()}"
+                                partes.size == 1 && partes[0].isNotEmpty() -> partes[0].take(2).uppercase()
+                                else -> "US"
+                            }
+                        }
 
                         Column(
                             modifier = Modifier
@@ -334,11 +361,15 @@ fun ChatPage(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(nomeExibido, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black,
+                                        Text(
+                                            text = nomeExibido,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            color = Color.Black,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,  // <- adiciona
-                                            modifier = Modifier.weight(1f) )
-
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
                                         Text(
                                             text = if (chat.lastTimestamp > 0L)
                                                 formatter.format(Date(chat.lastTimestamp))
@@ -349,7 +380,6 @@ fun ChatPage(
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
                                     val nomeItem = viewModel.items.find { it.id == chat.itemId }?.nome ?: ""
-
                                     Text("Item: $nomeItem", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = IfpeGreenMid, maxLines = 1)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(chat.lastMessage, fontSize = 13.sp, color = Color.Gray, maxLines = 1)
