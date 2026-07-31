@@ -54,7 +54,15 @@ fun MainNavHost(
                 onItemClick = { itemId -> navController.navigate(Route.ItemDetails(itemId)) }
             )
         }
-        composable<Route.Chat> { ChatPage(modifier = modifier) }
+
+        composable<Route.Chat> {
+            ChatPage(
+                modifier = modifier,
+                viewModel = viewModel
+            )
+        }
+
+
         composable<Route.Profile> {
             val context = LocalContext.current
             ProfilePage(
@@ -102,9 +110,23 @@ fun MainNavHost(
             val item = viewModel.items.find { it.id == routeArgs.itemId }
             ItemDetailsPage(
                 item = item,
-                viewModel = viewModel, // <--- ADICIONADO AQUI
+                viewModel = viewModel,
                 onBackClick = { navController.popBackStack() },
-                onChatClick = { navController.navigate(Route.Chat) }
+                onChatClick = { chatId ->
+                    navController.navigate(Route.ChatComId(chatId))
+                }
+            )
+        }
+
+        composable<Route.ChatComId> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.ChatComId>()
+            LaunchedEffect(Unit) {
+                viewModel.startListeningChats()
+            }
+            ChatPage(
+                modifier = modifier,
+                viewModel = viewModel,
+                chatIdInicial = route.chatId
             )
         }
 
@@ -128,5 +150,7 @@ fun MainNavHost(
                 onNavigateToRegister = { navController.navigate(Route.Register) }
             )
         }
+
+
     }
 }

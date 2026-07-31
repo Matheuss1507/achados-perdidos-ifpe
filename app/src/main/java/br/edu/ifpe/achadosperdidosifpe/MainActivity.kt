@@ -51,12 +51,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val navController = rememberNavController()
-            
+
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
-            ) {  }
+            ) { }
 
             LaunchedEffect(Unit) {
+                mainViewModel.startListeningChats()
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     val hasPermission = ContextCompat.checkSelfPermission(
                         context,

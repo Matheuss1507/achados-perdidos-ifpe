@@ -25,14 +25,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import br.edu.ifpe.achadosperdidosifpe.db.fb.FBChat
+import br.edu.ifpe.achadosperdidosifpe.db.fb.FBMessage
 import br.edu.ifpe.achadosperdidosifpe.model.Chat
+import br.edu.ifpe.achadosperdidosifpe.model.MainViewModel
 import br.edu.ifpe.achadosperdidosifpe.model.Message
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreen
 import br.edu.ifpe.achadosperdidosifpe.ui.theme.IfpeGreenMid
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,96 +47,85 @@ import java.util.Locale
 @Composable
 fun ChatPage(
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel,
+    chatIdInicial: String? = null,
     onBackClick: () -> Unit = {}
 ) {
+
+
+    var chatSelecionadoId by remember { mutableStateOf(chatIdInicial) }
+
+
+
     val context = LocalContext.current
-    var idChatSelecionado by remember { mutableStateOf<String?>(null) }
+    val currentUserId = Firebase.auth.currentUser?.uid ?: ""
+
+    val formatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+
+
+
     var mensagemAtual by remember { mutableStateOf("") }
     val estadoRolagem = rememberScrollState()
 
+    val fbChats by remember { derivedStateOf { viewModel.chats } }
+    val fbMessages by remember { derivedStateOf { viewModel.messages } }
+
+    LaunchedEffect(chatSelecionadoId, fbChats.size) {
+        android.util.Log.d("CHAT_DEBUG", "chatSelecionadoId: $chatSelecionadoId")
+        android.util.Log.d("CHAT_DEBUG", "fbChats size: ${fbChats.size}")
+        android.util.Log.d("CHAT_DEBUG", "chatAtualFB: ${fbChats.find { it.id == chatSelecionadoId }}")
+    }
+
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    val listaChats = remember {
-        listOf(
-            Chat(
-                id = "1",
-                nome = "João Silva",
-                papel = "Estudante - Informática",
-                tituloItem = "Celular Samsung Galaxy",
-                ultimaMensagem = "Perfeito! É esse mesmo. Deixei no Setor...",
-                horario = "14:37"
-            ),
-            Chat(
-                id = "2",
-                nome = "Maria Souza",
-                papel = "Estudante - Redes",
-                tituloItem = "Garrafa térmica azul",
-                ultimaMensagem = "Olá! Você encontrou minha garrafa?",
-                horario = "Ontem"
-            )
-        )
+    // Carrega lista de chats ao entrar na tela
+    LaunchedEffect(Unit) {
+        if (chatIdInicial == null) {
+            viewModel.startListeningChats()
+        }
     }
 
-    val mapaMensagens = remember {
-        mutableStateMapOf(
-            "1" to mutableStateListOf(
-                Message("Olá! Vi que você encontrou meu celular. Muito obrigado!", "14:32", false),
-                Message("Oi! Sim, encontrei perto da cantina. Para confirmar que é seu, pode responder: Qual é o papel de parede do celular?", "14:35", true),
-                Message("É uma foto da minha família na praia!", "14:36", false),
-                Message("Perfeito! É esse mesmo. Deixei no Setor de Achados e Perdidos. Fica no Bloco A.", "14:37", true)
-            ),
-            "2" to mutableStateListOf(
-                Message("Olá! Você encontrou minha garrafa?", "Ontem", false),
-                Message("Oi, Maria! Encontrei sim, estava na Quadra Poliesportiva próximo à arquibancada.", "Ontem", true),
-                Message("Nossa, que alívio! Posso passar para pegar amanhã?", "Ontem", false)
-            )
-        )
+    // Carrega mensagens ao selecionar um chat
+    LaunchedEffect(chatSelecionadoId) {
+        if (chatSelecionadoId != null) {
+            viewModel.startListeningMessages(chatSelecionadoId!!)
+        } else {
+            viewModel.stopListeningMessages()
+        }
     }
 
-    val chatAtual = listaChats.find { it.id == idChatSelecionado }
+    // Auto-scroll ao receber nova mensagem
+    LaunchedEffect(fbMessages.size) {
+        estadoRolagem.animateScrollTo(estadoRolagem.maxValue)
+    }
+
+    val chatAtualFB = if (chatSelecionadoId != null) {
+        fbChats.find { it.id == chatSelecionadoId } ?: FBChat(
+            id = chatSelecionadoId!!,
+            itemId = chatSelecionadoId!!.split("_").firstOrNull() ?: "",
+            participants = emptyList()
+        )
+    } else null
 
     @SuppressLint("MissingPermission")
     fun capturarEEnviarLocalizacao() {
-        if (chatAtual == null) return
-
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
-                if (location != null) {
-                    val lat = location.latitude
-                    val lng = location.longitude
-                    val horaAtual = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-
-                    val textoLocalizacao = "📍 Localização compartilhada:\nhttps://maps.google.com/?q=$lat,$lng"
-
-                    mapaMensagens[chatAtual.id]?.add(
-                        Message(textoLocalizacao, horaAtual, enviadoPorMim = true)
-                    )
-                    Toast.makeText(context, "Localização enviada com sucesso!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Não foi possível obter a localização. Verifique se o GPS está ativo.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
+        if (chatSelecionadoId == null) return
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                val texto = "📍 Localização compartilhada:\nhttps://maps.google.com/?q=${location.latitude},${location.longitude}"
+                viewModel.sendMessage(chatSelecionadoId!!, texto)
+                Toast.makeText(context, "Localização enviada!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "GPS indisponível.", Toast.LENGTH_LONG).show()
             }
-            .addOnFailureListener { exception ->
-                Toast.makeText(
-                    context,
-                    "Falha ao capturar localização: ${exception.localizedMessage}",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+        }
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            capturarEEnviarLocalizacao()
-        } else {
-            Toast.makeText(context, "Permissão de localização negada.", Toast.LENGTH_SHORT).show()
-        }
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) capturarEEnviarLocalizacao()
+        else Toast.makeText(context, "Permissão negada.", Toast.LENGTH_SHORT).show()
     }
 
     Scaffold(
@@ -138,37 +133,28 @@ fun ChatPage(
         topBar = {
             TopAppBar(
                 title = {
-                    if (chatAtual != null) {
+                    if (chatAtualFB != null) {
                         Column {
                             Text(
-                                text = chatAtual.nome,
+                                text = "Chat",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
                             Text(
-                                text = chatAtual.papel,
+                                text = "Item: ${chatAtualFB.itemId}",
                                 color = Color.White,
                                 fontSize = 12.sp
                             )
                         }
                     } else {
-                        Text(
-                            text = "Mensagens",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
+                        Text("Mensagens", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
                 },
                 navigationIcon = {
-                    if (chatAtual != null) {
-                        IconButton(onClick = { idChatSelecionado = null }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Voltar",
-                                tint = Color.White
-                            )
+                    if (chatAtualFB != null) {
+                        IconButton(onClick = { chatSelecionadoId = null }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar", tint = Color.White)
                         }
                     }
                 },
@@ -177,7 +163,9 @@ fun ChatPage(
             )
         }
     ) { innerPadding ->
-        if (chatAtual != null) {
+
+        if (chatAtualFB != null) {
+            // Tela de conversa
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -187,42 +175,36 @@ fun ChatPage(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
+
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F0FE)),
                         border = BorderStroke(1.dp, Color.LightGray),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
                         ) {
+                            val nomeItem = viewModel.items.find { it.id == chatAtualFB.itemId }?.nome ?: ""
                             Text("Chat sobre: ", fontSize = 14.sp, color = Color.Black)
-                            Text(chatAtual.tituloItem, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Black)
+                            Text(nomeItem, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Black)
                         }
                     }
 
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(estadoRolagem)
+                        modifier = Modifier.weight(1f).verticalScroll(estadoRolagem)
                     ) {
-                        val mensagensAtuais = mapaMensagens[chatAtual.id] ?: emptyList()
-                        mensagensAtuais.forEach { msg ->
+
+                        fbMessages.forEach { msg ->
+                            val isMe = msg.senderId == currentUserId
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp),
-                                horizontalArrangement = if (msg.enviadoPorMim) Arrangement.End else Arrangement.Start
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
                             ) {
                                 Card(
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if (msg.enviadoPorMim) IfpeGreenMid else Color.White
+                                        containerColor = if (isMe) IfpeGreenMid else Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     elevation = CardDefaults.cardElevation(1.dp),
@@ -230,15 +212,17 @@ fun ChatPage(
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         Text(
-                                            text = msg.texto,
+                                            text = msg.text,
                                             fontSize = 14.sp,
-                                            color = if (msg.enviadoPorMim) Color.White else Color.Black
+                                            color = if (isMe) Color.White else Color.Black
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
+
                                         Text(
-                                            text = msg.horario,
+
+                                            text = formatter.format(Date(msg.timestamp)),
                                             fontSize = 11.sp,
-                                            color = if (msg.enviadoPorMim) Color.White.copy(alpha = 0.7f) else Color.Gray,
+                                            color = if (isMe) Color.White.copy(alpha = 0.7f) else Color.Gray,
                                             modifier = Modifier.align(Alignment.End)
                                         )
                                     }
@@ -248,67 +232,38 @@ fun ChatPage(
                     }
 
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp)
-                            .clickable {
-                                val permissionGranted = ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.ACCESS_FINE_LOCATION
-                                ) == PackageManager.PERMISSION_GRANTED
-
-                                if (permissionGranted) {
-                                    capturarEEnviarLocalizacao()
-                                } else {
-                                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                                }
-                            },
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp).clickable {
+                            val granted = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (granted) capturarEEnviarLocalizacao()
+                            else locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        },
                         border = BorderStroke(1.dp, Color(0xFFDDDDDD)),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = IfpeGreenMid
-                            )
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = IfpeGreenMid)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Compartilhar Localização em Tempo Real",
-                                color = IfpeGreenMid,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Text("Compartilhar Localização em Tempo Real", color = IfpeGreenMid, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextField(
                         value = mensagemAtual,
                         onValueChange = { mensagemAtual = it },
-                        placeholder = {
-                            Text(
-                                "Digite uma mensagem...",
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
+                        placeholder = { Text("Digite uma mensagem...", fontSize = 14.sp, color = Color.Gray) },
+                        modifier = Modifier.weight(1f).height(56.dp),
                         shape = CircleShape,
                         colors = TextFieldDefaults.colors(
                             unfocusedContainerColor = Color(0xFFF1F1F1),
@@ -324,10 +279,7 @@ fun ChatPage(
                     FilledIconButton(
                         onClick = {
                             if (mensagemAtual.isNotBlank()) {
-                                val horaAtual = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-                                mapaMensagens[chatAtual.id]?.add(
-                                    Message(mensagemAtual, horaAtual, enviadoPorMim = true)
-                                )
+                                viewModel.sendMessage(chatSelecionadoId!!, mensagemAtual)
                                 mensagemAtual = ""
                             }
                         },
@@ -335,85 +287,77 @@ fun ChatPage(
                         shape = CircleShape,
                         colors = IconButtonDefaults.filledIconButtonColors(containerColor = IfpeGreenMid)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "Enviar",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Send, contentDescription = "Enviar", tint = Color.White)
                     }
                 }
             }
+
         } else {
+            // Lista de chats
             Column(
                 modifier = modifier
                     .fillMaxSize()
                     .background(Color(0xFFF9F9F9))
                     .padding(innerPadding)
             ) {
-                listaChats.forEach { chat ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White)
-                            .clickable { idChatSelecionado = chat.id }
-                            .padding(horizontal = 16.dp, vertical = 14.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                if (fbChats.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Nenhuma conversa ainda.", color = Color.Gray, fontSize = 14.sp)
+                    }
+                } else {
+
+                    fbChats.forEach { chat ->
+                        val outroParticipante = chat.participants.firstOrNull { it != currentUserId } ?: ""
+// busca o nome se for o usuário atual
+                        val nomeExibido = "Usuário"
+                        val iniciais = "US"
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White)
+                                .clickable { chatSelecionadoId = chat.id }
+                                .padding(horizontal = 16.dp, vertical = 14.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(Color(0xFFE8F5E9), shape = CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val iniciais = chat.nome.split(" ").map { it.take(1) }.joinToString("")
-                                Text(
-                                    text = iniciais,
-                                    color = IfpeGreen,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(14.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color(0xFFE8F5E9), CircleShape),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = chat.nome,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = Color.Black
-                                    )
-                                    Text(
-                                        text = chat.horario,
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
+                                    Text(iniciais, color = IfpeGreen, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 }
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Item: ${chat.tituloItem}",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = IfpeGreenMid,
-                                    maxLines = 1
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = chat.ultimaMensagem,
-                                    fontSize = 13.sp,
-                                    color = Color.Gray,
-                                    maxLines = 1
-                                )
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(nomeExibido, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,  // <- adiciona
+                                            modifier = Modifier.weight(1f) )
+
+                                        Text(
+                                            text = if (chat.lastTimestamp > 0L)
+                                                formatter.format(Date(chat.lastTimestamp))
+                                            else "",
+                                            fontSize = 12.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    val nomeItem = viewModel.items.find { it.id == chat.itemId }?.nome ?: ""
+
+                                    Text("Item: $nomeItem", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = IfpeGreenMid, maxLines = 1)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(chat.lastMessage, fontSize = 13.sp, color = Color.Gray, maxLines = 1)
+                                }
                             }
                         }
+                        HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
                     }
-                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
                 }
             }
         }

@@ -7,8 +7,10 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import br.edu.ifpe.achadosperdidosifpe.db.fb.FBChat
 import br.edu.ifpe.achadosperdidosifpe.db.fb.FBDatabase
 import br.edu.ifpe.achadosperdidosifpe.db.fb.FBItem
+import br.edu.ifpe.achadosperdidosifpe.db.fb.FBMessage
 import br.edu.ifpe.achadosperdidosifpe.db.fb.FBUser
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toFBItem
 import br.edu.ifpe.achadosperdidosifpe.db.fb.toItem
@@ -18,6 +20,7 @@ import br.edu.ifpe.achadosperdidosifpe.notification.AppNotificationHelper
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
+import com.google.firebase.firestore.ListenerRegistration
 
 class MainViewModel(
     private val db: FBDatabase
@@ -207,5 +210,71 @@ class MainViewModel(
         } catch (e: Exception) {
             onComplete(false)
         }
+    }
+
+    private val _chats = mutableStateListOf<FBChat>()
+    val chats: List<FBChat> get() = _chats
+
+    private val _messages = mutableStateListOf<FBMessage>()
+    val messages: List<FBMessage> get() = _messages
+
+    private var chatsListReg: ListenerRegistration? = null
+    private var messagesListReg: ListenerRegistration? = null
+
+    fun startListeningChats() {
+        if (chatsListReg != null) return
+        android.util.Log.d("CHAT_DEBUG", "já existe listener, ignorando")
+
+        chatsListReg = db.listenToUserChats { list ->
+            android.util.Log.d("CHAT_DEBUG", "chats recebidos: ${list.size}")
+
+            _chats.clear()
+            _chats.addAll(list)
+        }
+    }
+
+    fun startListeningMessages(chatId: String) {
+        messagesListReg?.remove()
+        messagesListReg = db.listenToMessages(chatId) { list ->
+            _messages.clear()
+            _messages.addAll(list)
+        }
+    }
+
+    fun stopListeningMessages() {
+        messagesListReg?.remove()
+        messagesListReg = null
+        _messages.clear()
+    }
+
+    fun sendMessage(chatId: String, text: String) {
+        db.sendMessage(chatId, text)
+    }
+
+    fun openOrCreateChat(
+        itemId: String,
+        ownerId: String,
+        onReady: (chatId: String) -> Unit
+    ) {
+        db.createOrGetChat(itemId, ownerId, onReady)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        chatsListReg?.remove()
+        messagesListReg?.remove()
+    }
+
+    private val _chatInicialId = mutableStateOf<String?>(null)
+    val chatInicialId: String? get() = _chatInicialId.value
+
+    fun setChatInicial(chatId: String) {
+        _chatInicialId.value = chatId
+    }
+
+    fun consumirChatInicial(): String? {
+        val id = _chatInicialId.value
+        _chatInicialId.value = null
+        return id
     }
 }

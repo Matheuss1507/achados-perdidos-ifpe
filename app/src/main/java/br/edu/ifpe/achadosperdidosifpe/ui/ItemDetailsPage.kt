@@ -43,7 +43,7 @@ fun ItemDetailsPage(
     item: Item? = null,
     viewModel: MainViewModel,
     onBackClick: () -> Unit = {},
-    onChatClick: () -> Unit = {}
+    onChatClick: (chatId: String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentUserId = viewModel.user?.id
@@ -433,7 +433,19 @@ fun ItemDetailsPage(
                 // Botão de Chat (Desativado caso o status seja RESOLVIDO)
                 if (!isResolvido) {
                     Button(
-                        onClick = onChatClick,
+                        onClick = {
+                            if (!isCriador) {
+                                android.util.Log.d("CHAT_DEBUG", "itemId: ${item.id}, ownerId: ${item.usuarioId}")
+                                viewModel.openOrCreateChat(
+                                    itemId = item.id,
+                                    ownerId = item.usuarioId
+                                ) { chatId ->
+                                    android.util.Log.d("CHAT_DEBUG", "chatId criado: $chatId")
+
+                                    onChatClick(chatId)
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = IfpeGreen)

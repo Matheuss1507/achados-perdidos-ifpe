@@ -33,6 +33,10 @@ sealed interface Route {
 
     @Serializable
     data object Login : Route
+
+
+    @Serializable
+    data class ChatComId(val chatId: String) : Route
 }
 
 sealed class BottomNavItem(
@@ -48,4 +52,5 @@ sealed class BottomNavItem(
         BottomNavItem("Chat", Icons.Default.ChatBubbleOutline, Route.Chat)
     data object ProfileButton :
         BottomNavItem("Perfil", Icons.Default.Person, Route.Profile)
+
 }
